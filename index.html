@@ -362,7 +362,8 @@ select option{background:var(--sf2)}
         <div class="pg-sub" id="last-upd">Henüz veri yok</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn bg2" onclick="openManualPriceModal()">✏️ Fiyat Güncelle</button>
+        <button class="btn bg2" onclick="fetchAllPrices()">🔄 Otomatik Güncelle</button>
+        <button class="btn bg2" onclick="openManualPriceModal()">✏️ Manuel Gir</button>
         <button class="btn bg2" onclick="openDivModal()">+ Temettü</button>
         <button class="btn bp" onclick="openAddModal()">+ Hisse Ekle</button>
       </div>
@@ -748,16 +749,73 @@ function setTheme(t,btn){
 
 // ══════════════════════════════════════════════
 // FİYAT GÜNCELLEME
+// Foreks public API denenır, CORS engeli varsa
+// kullanıcıya bilgi verilir ve manuel açılır.
 // ══════════════════════════════════════════════
-// Not: BIST hisse fiyatları için tarayıcıdan CORS engeli nedeniyle
-// otomatik çekim çalışmıyor. Manuel giriş kullanın.
+async function fetchPrice(ticker){
+  // Foreks public endpoint — CORS izni var
+  try{
+    const url=`https://web-paragaranti-pubsub.foreks.com/web-services/securities/definition?name=${ticker}&group=E&exchange=BIST`;
+    const r=await fetch(url,{signal:AbortSignal.timeout(5000)});
+    if(r.ok){
+      const d=await r.json();
+      const p=d?.last||d?.close||d?.price||d?.lastPrice;
+      if(p&&parseFloat(p)>0) return parseFloat(p);
+    }
+  }catch(e){}
 
-async function fetchAllPrices(){
-  // Otomatik yerine Manuel Fiyat modalını aç
-  openManualPriceModal();
+  // Foreks hisse detay endpoint
+  try{
+    const url2=`https://web-paragaranti-pubsub.foreks.com/web-services/securities?name=${ticker}&exchange=BIST`;
+    const r2=await fetch(url2,{signal:AbortSignal.timeout(5000)});
+    if(r2.ok){
+      const d2=await r2.json();
+      const item=Array.isArray(d2)?d2[0]:d2;
+      const p=item?.las||item?.last||item?.close||item?.lst;
+      if(p&&parseFloat(p)>0) return parseFloat(p);
+    }
+  }catch(e){}
+
+  return null;
 }
 
-function fetchPrice(){ return null; }
+async function fetchAllPrices(){
+  if(!S.stocks.length){alert('Önce hisse ekleyin.');return;}
+  const st=document.getElementById('price-status'),lb=document.getElementById('live-badge');
+  st.className='price-status loading';
+  st.innerHTML='<span class="spin">⟳</span> Fiyatlar çekiliyor...';
+  lb.style.display='inline-flex';
+
+  let ok=0,fail=[];
+  for(const s of S.stocks){
+    st.innerHTML=`<span class="spin">⟳</span> ${s.ticker} (${ok}/${S.stocks.length})`;
+    const price=await fetchPrice(s.ticker);
+    if(price){
+      S.prices[s.ticker]={price,ts:Date.now()};
+      s.lots.forEach(l=>l.curPrice=price);
+      ok++;
+    } else {
+      fail.push(s.ticker);
+    }
+    await new Promise(r=>setTimeout(r,250));
+  }
+
+  save();
+  if(ok>0){
+    st.className='price-status done';
+    st.innerHTML=`✓ ${ok} hisse güncellendi${fail.length?' · '+fail.join(',')+' manuel girin':''}`;
+    if(fail.length) setTimeout(()=>openManualPriceModal(),1500);
+  } else {
+    st.className='price-status err';
+    st.innerHTML='⚠ Otomatik çekilemedi';
+    setTimeout(()=>{
+      st.innerHTML='';
+      openManualPriceModal();
+    },1200);
+  }
+  setTimeout(()=>{ if(st.innerHTML.startsWith('✓')) st.innerHTML=''; },8000);
+  renderAll();
+}
 
 // ══════════════════════════════════════════════
 // NAV
