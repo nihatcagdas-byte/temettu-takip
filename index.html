@@ -308,7 +308,12 @@ select option{background:var(--sf2)}
   .proj-inputs{grid-template-columns:repeat(2,1fr)}
   .stock-metrics{gap:14px}
 }
-/* KAYDET BUTONU */
+/* SIRALALANAB İLİR KOLONLAR */
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{color:var(--text);background:var(--sf3)}
+th.sortable .sort-icon{display:inline-block;margin-left:5px;font-size:.65rem;opacity:.35;transition:opacity .15s}
+th.sortable:hover .sort-icon{opacity:.7}
+th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)}
 .save-pulse{animation:savepulse .5s ease}
 @keyframes savepulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
 #save-btn{background:var(--ac);color:#000;font-weight:800}
@@ -388,7 +393,7 @@ select option{background:var(--sf2)}
         </div>
         <div class="tw">
           <table>
-            <thead><tr><th>Hisse</th><th>Adet</th><th>Ort.Fiyat</th><th>Güncel</th><th>K/Z</th><th>Temettü</th><th>Verim</th><th>Trend</th><th></th></tr></thead>
+            <thead><tr id="pthead"></tr></thead>
             <tbody id="ptbody"><tr><td colspan="9"><div class="empty"><div class="ei">📭</div><div class="et">Henüz hisse yok.<br>Sağ üstten ekleyebilirsiniz.</div></div></td></tr></tbody>
           </table>
         </div>
@@ -1093,6 +1098,18 @@ function tc(){
   return{a:'rgba(0,212,170,.8)',a2:'rgba(0,149,255,.8)',grid:'rgba(26,37,64,.7)',tick:'#4a5f7a',palette:['#00d4aa','#0095ff','#f5c518','#ff4560','#00e396','#775dd0','#feb019']};
 }
 
+function sortTable(col){
+  if(!window._ptSort) window._ptSort={col:'ticker',dir:'asc'};
+  if(window._ptSort.col===col){
+    window._ptSort.dir = window._ptSort.dir==='asc'?'desc':'asc';
+  } else {
+    window._ptSort.col=col;
+    // Sayısal kolonlar için varsayılan azalan, metin için artan
+    window._ptSort.dir=['ticker'].includes(col)?'asc':'desc';
+  }
+  renderDashboard();
+}
+
 // ══════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════
@@ -1123,27 +1140,78 @@ function renderDashboard(){
 
   // TABLE
   const tb=document.getElementById('ptbody');
-  if(!stocks.length){tb.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📭</div><div class="et">Hisse eklemek için sağ üstteki butonu kullanın</div></div></td></tr>';}
-  else tb.innerHTML=stocks.map(s=>{
-    const l=s.lots.reduce((a,x)=>a+x.lots,0),avg=l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;
-    const sd=divs.filter(d=>d.ticker===s.ticker).reduce((a,d)=>a+d.total,0);
-    const ex=s.lots.map(x=>x.expDiv).filter(Boolean);
-    const yld=ex.length&&avg?((ex.reduce((a,b)=>a+b,0)/ex.length)/avg*100).toFixed(2):null;
-    const cp=S.prices[s.ticker]?.price||s.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice;
-    let plH='<span style="color:var(--muted)">—</span>',curH='<span style="color:var(--muted)">—</span>';
-    if(cp){const pl2=(cp-avg)*l,pp=((cp-avg)/avg*100).toFixed(1);curH=`<span class="mo">${fmtN(cp)}</span>`;plH=`<span class="${pl2>=0?'pos':'neg'}">${pl2>=0?'+':''}${fmt(pl2)}<small style="opacity:.7"> ${pl2>=0?'+':''}${pp}%</small></span>`;}
-    const spark=drawSparkSVG(s.ticker);
-    return `<tr onclick="switchToTab('stocks')">
-      <td><div class="tk">${s.ticker}</div><div style="font-size:.68rem;color:var(--muted)">${s.name}</div></td>
-      <td class="mo">${l.toLocaleString('tr-TR')}</td>
-      <td class="mo">${fmtN(avg)}</td>
-      <td>${curH}</td><td>${plH}</td>
-      <td class="mo pos">${fmt(sd)}</td>
-      <td>${yld?`<span class="badge bo" data-tip="Yıllık beklenen verim / maliyet">%${yld}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
-      <td>${spark}</td>
-      <td><button class="btn bd sm" onclick="event.stopPropagation();delStock('${s.ticker}')">🗑</button></td>
-    </tr>`;
+  const th=document.getElementById('pthead');
+
+  // Sıralama state
+  if(!window._ptSort) window._ptSort={col:'ticker',dir:'asc'};
+
+  // Kolon tanımları
+  const COLS=[
+    {key:'ticker',  label:'Hisse',   tip:null},
+    {key:'lots',    label:'Adet',    tip:null},
+    {key:'avg',     label:'Ort.Fiyat',tip:null},
+    {key:'cur',     label:'Güncel',  tip:null},
+    {key:'pl',      label:'K/Z',     tip:'Fiyat kar/zararı'},
+    {key:'div',     label:'Temettü', tip:'Toplam alınan temettü'},
+    {key:'yld',     label:'Verim',   tip:'Beklenen yıllık temettü verimi'},
+    {key:'trend',   label:'Trend',   tip:'Son temettü ödemeleri trendi',sort:false},
+    {key:'_act',    label:'',        sort:false},
+  ];
+
+  // Thead oluştur
+  th.innerHTML = COLS.map(c=>{
+    if(c.sort===false) return `<th>${c.label}</th>`;
+    const active=window._ptSort.col===c.key;
+    const dir=active?window._ptSort.dir:'asc';
+    const icon=active?(dir==='asc'?'▲':'▼'):'⇅';
+    return `<th class="sortable${active?' '+dir:''}" onclick="sortTable('${c.key}')" ${c.tip?`data-tip="${c.tip}"`:''}>${c.label} <span class="sort-icon">${icon}</span></th>`;
   }).join('');
+
+  if(!stocks.length){
+    tb.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📭</div><div class="et">Hisse eklemek için sağ üstteki butonu kullanın</div></div></td></tr>';
+  } else {
+    // Her hisse için hesapla
+    let rows = stocks.map(s=>{
+      const l=s.lots.reduce((a,x)=>a+x.lots,0),avg=l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;
+      const sd=divs.filter(d=>d.ticker===s.ticker).reduce((a,d)=>a+d.total,0);
+      const ex=s.lots.map(x=>x.expDiv).filter(Boolean);
+      const yld=ex.length&&avg?(ex.reduce((a,b)=>a+b,0)/ex.length)/avg*100:null;
+      const cp=S.prices[s.ticker]?.price||s.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice;
+      const pl=cp?(cp-avg)*l:null;
+      return {s, l, avg, sd, yld, cp, pl, ticker:s.ticker};
+    });
+
+    // Sırala
+    const {col,dir}=window._ptSort;
+    rows.sort((a,b)=>{
+      let va,vb;
+      if(col==='ticker'){va=a.ticker;vb=b.ticker;return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va);}
+      if(col==='lots') {va=a.l;vb=b.l;}
+      else if(col==='avg') {va=a.avg;vb=b.avg;}
+      else if(col==='cur') {va=a.cp||0;vb=b.cp||0;}
+      else if(col==='pl')  {va=a.pl??-Infinity;vb=b.pl??-Infinity;}
+      else if(col==='div') {va=a.sd;vb=b.sd;}
+      else if(col==='yld') {va=a.yld??-Infinity;vb=b.yld??-Infinity;}
+      else {va=0;vb=0;}
+      return dir==='asc'?va-vb:vb-va;
+    });
+
+    tb.innerHTML = rows.map(({s,l,avg,sd,yld,cp,pl})=>{
+      let plH='<span style="color:var(--muted)">—</span>',curH='<span style="color:var(--muted)">—</span>';
+      if(cp){const pp=((cp-avg)/avg*100).toFixed(1);curH=`<span class="mo">${fmtN(cp)}</span>`;plH=`<span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':''}${fmt(pl)}<small style="opacity:.7"> ${pl>=0?'+':''}${pp}%</small></span>`;}
+      const spark=drawSparkSVG(s.ticker);
+      return `<tr onclick="switchToTab('stocks')">
+        <td><div class="tk">${s.ticker}</div><div style="font-size:.68rem;color:var(--muted)">${s.name}</div></td>
+        <td class="mo">${l.toLocaleString('tr-TR')}</td>
+        <td class="mo">${fmtN(avg)}</td>
+        <td>${curH}</td><td>${plH}</td>
+        <td class="mo pos">${fmt(sd)}</td>
+        <td>${yld!==null?`<span class="badge bo" data-tip="Yıllık beklenen verim / maliyet">%${yld.toFixed(2)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+        <td>${spark}</td>
+        <td><button class="btn bd sm" onclick="event.stopPropagation();delStock('${s.ticker}')">🗑</button></td>
+      </tr>`;
+    }).join('');
+  }
 
   renderDonut();
   renderDivChart();
