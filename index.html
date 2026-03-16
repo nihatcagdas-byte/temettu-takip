@@ -581,8 +581,33 @@ select option{background:var(--sf2)}
           </label>
         </div>
         <div class="ss">
+          <div class="stitle">📊 Excel / CSV İşlemleri</div>
+          <div style="font-size:.78rem;color:var(--muted2);margin-bottom:14px;line-height:1.7">
+            Hisse alımlarınızı veya temettü ödemelerinizi Excel'den toplu aktarabilirsiniz.<br>
+            <strong style="color:var(--text)">Desteklenen format:</strong> .csv (virgül veya noktalı virgülle ayrılmış). Excel'de düzenleyip "CSV olarak kaydet" seçeneğiyle kaydedebilirsiniz.
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="btn bp" onclick="openImportExcel()">📥 CSV / Excel'den İçe Aktar</button>
+            <button class="btn bg2" onclick="exportExcelStocks()">📤 Hisse Alımlarını İndir (.csv)</button>
+            <button class="btn bg2" onclick="exportExcelDivs()">📤 Temettüleri İndir (.csv)</button>
+          </div>
+          <div style="background:var(--sf2);border:1px solid var(--br);border-radius:10px;padding:12px 14px">
+            <div style="font-size:.72rem;font-weight:700;color:var(--ac);margin-bottom:8px;letter-spacing:.5px">📋 ŞABLON KOLON SIRALARI</div>
+            <div style="font-size:.72rem;color:var(--muted2);line-height:1.9;font-family:var(--fm)">
+              <strong style="color:var(--text)">Hisse Alımları:</strong><br>
+              Hisse Kodu | Şirket Adı | Sektör | Alım Tarihi | Alım Fiyatı | Adet | Toplam Maliyet | Beklenen Temettü/Adet | Not<br><br>
+              <strong style="color:var(--text)">Temettü Ödemeleri:</strong><br>
+              Hisse Kodu | Ödeme Tarihi | Hisse Başına Temettü | Toplam Alınan | Dönem<br><br>
+              <strong style="color:var(--text)">Tarih formatı:</strong> YYYY-AA-GG (2024-03-15) veya GG.AA.YYYY (15.03.2024)
+            </div>
+            <button class="btn bg2 sm" style="margin-top:10px" onclick="downloadTemplate()">⬇ Boş Şablon İndir</button>
+          </div>
+          <input type="file" id="excel-import-file" accept=".csv,.xlsx,.xls" style="display:none">
+        </div>
+
+        <div class="ss">
           <div class="stitle">🗂️ Veri Yönetimi</div>
-          <div style="background:var(--sf2);border:1px solid var(--br);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.78rem;color:var(--muted2);line-height:1.75">
+          <div style="background:var(--sf2);border:1px solid var(--br);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.78rem;color:var(--muted2);line-height:1.7">
             <strong style="color:var(--ac)">🔒 Verileriniz nerede saklanıyor?</strong><br>
             Tüm veriler <strong style="color:var(--text)">yalnızca bu tarayıcıya</strong> kaydedilir (localStorage). Sunucuya hiçbir şey gönderilmez. Farklı bir cihaz veya tarayıcıdan erişmek istiyorsanız JSON yedek alın ve orada geri yükleyin.
           </div>
@@ -1006,6 +1031,7 @@ function closeModal(id){
   if(id==='m-note'){['n-tick','n-ttl','n-body'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});document.getElementById('n-tag').value='';}
   if(id==='m-edit-stock'){['es-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('es-sec').value='';}
   if(id==='m-edit-lot'){['el-date','el-price','el-lots','el-exp','el-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});}
+  if(id==='m-import-preview'){document.getElementById('import-preview-body').innerHTML='';}
 }
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
 
@@ -1528,9 +1554,222 @@ function checkAlerts(){
 }
 
 // ══════════════════════════════════════════════
-// EXPORT / IMPORT
+// EXCEL / CSV EXPORT & IMPORT
 // ══════════════════════════════════════════════
-function exportCSV(){let c='Hisse,Şirket,Tarih,Fiyat,Adet,Toplam\n';S.stocks.forEach(s=>s.lots.forEach(l=>{c+=`${s.ticker},${s.name},${l.date},${l.price},${l.lots},${l.price*l.lots}\n`;}));dl('temettu.csv',c,'text/csv');}
+
+// ── EXPORT: Hisse alımları Excel/CSV ──────────
+function exportExcelStocks(){
+  const BOM = '\uFEFF'; // Excel için UTF-8 BOM
+  const rows = [
+    ['Hisse Kodu','Şirket Adı','Sektör','Alım Tarihi','Alım Fiyatı (₺)','Adet','Toplam Maliyet (₺)','Beklenen Temettü/Adet (₺)','Not']
+  ];
+  S.stocks.forEach(s=>{
+    s.lots.forEach(l=>{
+      rows.push([
+        s.ticker,
+        s.name,
+        s.sector||'',
+        l.date,
+        l.price,
+        l.lots,
+        (l.price*l.lots).toFixed(2),
+        l.expDiv||'',
+        l.note||''
+      ]);
+    });
+  });
+  const csv = BOM + rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  dl('temettu-alimlar.csv', csv, 'text/csv;charset=utf-8');
+}
+
+// ── EXPORT: Temettüler CSV ────────────────────
+function exportExcelDivs(){
+  const BOM = '\uFEFF';
+  const rows = [
+    ['Hisse Kodu','Ödeme Tarihi','Hisse Başına Temettü (₺)','Toplam Alınan (₺)','Dönem']
+  ];
+  S.dividends.forEach(d=>{
+    rows.push([d.ticker, d.date, d.perShare, d.total.toFixed(2), d.period||'']);
+  });
+  const csv = BOM + rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  dl('temettu-odemeler.csv', csv, 'text/csv;charset=utf-8');
+}
+
+// ── IMPORT: CSV okuma + önizleme ──────────────
+function openImportExcel(){
+  document.getElementById('excel-import-file').click();
+}
+document.getElementById('excel-import-file').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      parseImportCSV(ev.target.result, file.name);
+    } catch(err) {
+      alert('Dosya okunamadı: ' + err.message);
+    }
+    e.target.value = ''; // reset
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+function parseImportCSV(text, fileName){
+  // BOM temizle
+  text = text.replace(/^\uFEFF/, '');
+  // Satırları ayır
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if(lines.length < 2){ alert('Dosya boş veya sadece başlık içeriyor.'); return; }
+
+  // Virgül veya noktalı virgülle ayrılmış olabilir
+  const sep = lines[0].includes(';') ? ';' : ',';
+
+  const parseRow = line => {
+    const cells = [];
+    let cur = '', inQ = false;
+    for(let i=0;i<line.length;i++){
+      const c = line[i];
+      if(c==='"'){ if(inQ && line[i+1]==='"'){cur+='"';i++;} else inQ=!inQ; }
+      else if(c===sep && !inQ){ cells.push(cur.trim()); cur=''; }
+      else cur+=c;
+    }
+    cells.push(cur.trim());
+    return cells;
+  };
+
+  const headers = parseRow(lines[0]).map(h=>h.toLowerCase().replace(/[^a-z0-9ığüşöçIĞÜŞÖÇ]/gi,''));
+  const rows = lines.slice(1).map(parseRow).filter(r=>r.some(c=>c));
+
+  // Hangi format? (alımlar mı temettüler mi?)
+  const isDiv = headers.some(h=>h.includes('temettu') || h.includes('temettü') || h.includes('odeme') || h.includes('ödeme'));
+  const isStock = headers.some(h=>h.includes('alim') || h.includes('alım') || h.includes('fiyat') || h.includes('adet'));
+
+  // Kolon indekslerini bul
+  const findCol = (...terms) => {
+    const idx = headers.findIndex(h => terms.some(t => h.includes(t)));
+    return idx >= 0 ? idx : -1;
+  };
+
+  let parsed = [], type = '';
+
+  if(isDiv && !isStock){
+    type = 'div';
+    const iT=findCol('hisse','kod','ticker'), iD=findCol('tarih','date'), iP=findCol('basinatemettu','başına','persh','hissebasi'), iTot=findCol('toplam','total'), iPrd=findCol('donem','dönem','period','acik');
+    parsed = rows.map((r,i)=>({
+      _row: i+2,
+      ticker: (iT>=0?r[iT]:'').toUpperCase().trim(),
+      date:   iD>=0?r[iD]:'',
+      perShare: parseFloat((iP>=0?r[iP]:'0').replace(',','.'))||0,
+      total:  iTot>=0?parseFloat((r[iTot]||'0').replace(',','.'))||0:0,
+      period: iPrd>=0?r[iPrd]:'',
+    })).filter(r=>r.ticker && r.date && r.perShare>0);
+  } else {
+    type = 'stock';
+    const iT=findCol('hisse','kod','ticker'), iN=findCol('sirket','şirket','company','ad','name'), iS=findCol('sektor','sektör','sector'), iD=findCol('tarih','date'), iP=findCol('fiyat','price'), iL=findCol('adet','lot','qty','quantity'), iE=findCol('beklenen','expdiv','temettü','temettua'), iNo=findCol('not','note');
+    parsed = rows.map((r,i)=>({
+      _row: i+2,
+      ticker: (iT>=0?r[iT]:'').toUpperCase().trim(),
+      name:   iN>=0?r[iN]:'',
+      sector: iS>=0?r[iS]:'',
+      date:   iD>=0?r[iD]:'',
+      price:  parseFloat((iP>=0?r[iP]:'0').replace(',','.'))||0,
+      lots:   parseInt((iL>=0?r[iL]:'0').replace(',','.'))||0,
+      expDiv: iE>=0?parseFloat((r[iE]||'').replace(',','.'))||null:null,
+      note:   iNo>=0?r[iNo]:'',
+    })).filter(r=>r.ticker && r.date && r.price>0 && r.lots>0);
+  }
+
+  if(!parsed.length){ alert('Uygun veri bulunamadı. Şablon formatını kontrol edin.'); return; }
+  showImportPreview(parsed, type, fileName);
+}
+
+function showImportPreview(rows, type, fileName){
+  const modal = document.getElementById('m-import-preview');
+  const area = document.getElementById('import-preview-body');
+  const title = document.getElementById('import-preview-title');
+  const count = document.getElementById('import-preview-count');
+
+  title.textContent = type==='div' ? '💰 Temettü Ödemeleri İçe Aktarılıyor' : '📈 Hisse Alımları İçe Aktarılıyor';
+  count.textContent = `${rows.length} satır bulundu — "${fileName}"`;
+
+  if(type==='stock'){
+    area.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.75rem">
+      <thead><tr style="background:var(--sf3)">
+        ${['Kod','Şirket','Sektör','Tarih','Fiyat','Adet','Bek.Temettü','Not'].map(h=>`<th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:.62rem;letter-spacing:.8px;text-transform:uppercase;border-bottom:1px solid var(--br)">${h}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr style="border-bottom:1px solid var(--br)">
+          <td style="padding:8px 10px;font-family:var(--fm);font-weight:700;color:var(--ac)">${r.ticker}</td>
+          <td style="padding:8px 10px;color:var(--muted2)">${r.name||'—'}</td>
+          <td style="padding:8px 10px;color:var(--muted2)">${r.sector||'—'}</td>
+          <td style="padding:8px 10px;font-family:var(--fm)">${r.date}</td>
+          <td style="padding:8px 10px;font-family:var(--fm)">₺${r.price.toFixed(2)}</td>
+          <td style="padding:8px 10px;font-family:var(--fm)">${r.lots.toLocaleString('tr-TR')}</td>
+          <td style="padding:8px 10px;font-family:var(--fm)">${r.expDiv?'₺'+r.expDiv.toFixed(2):'—'}</td>
+          <td style="padding:8px 10px;color:var(--muted2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.note||''}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  } else {
+    area.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.75rem">
+      <thead><tr style="background:var(--sf3)">
+        ${['Hisse','Tarih','Hisse Başına','Toplam','Dönem'].map(h=>`<th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:.62rem;letter-spacing:.8px;text-transform:uppercase;border-bottom:1px solid var(--br)">${h}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr style="border-bottom:1px solid var(--br)">
+          <td style="padding:8px 10px;font-family:var(--fm);font-weight:700;color:var(--ac)">${r.ticker}</td>
+          <td style="padding:8px 10px;font-family:var(--fm)">${r.date}</td>
+          <td style="padding:8px 10px;font-family:var(--fm)">₺${r.perShare.toFixed(2)}</td>
+          <td style="padding:8px 10px;font-family:var(--fm) ;color:var(--green)">₺${r.total.toFixed(2)}</td>
+          <td style="padding:8px 10px;color:var(--muted2)">${r.period||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  // Onayla butonuna data ata
+  document.getElementById('import-confirm-btn').onclick = () => doImport(rows, type);
+  modal.classList.add('open');
+}
+
+function doImport(rows, type){
+  let added=0, skipped=0;
+  if(type==='stock'){
+    rows.forEach(r=>{
+      // Tarih formatı düzelt (gg.aa.yyyy → yyyy-mm-dd)
+      let date = r.date;
+      if(/^\d{2}\.\d{2}\.\d{4}$/.test(date)){
+        const [d,m,y]=date.split('.');date=`${y}-${m}-${d}`;
+      } else if(/^\d{2}\/\d{2}\/\d{4}$/.test(date)){
+        const [d,m,y]=date.split('/');date=`${y}-${m}-${d}`;
+      }
+      if(!date||!r.ticker||r.price<=0||r.lots<=0){skipped++;return;}
+      let s=S.stocks.find(x=>x.ticker===r.ticker);
+      if(!s){s={ticker:r.ticker,name:r.name||r.ticker,sector:r.sector||'',lots:[]};S.stocks.push(s);}
+      else { if(r.name&&!s.name)s.name=r.name; if(r.sector&&!s.sector)s.sector=r.sector; }
+      s.lots.push({id:Date.now()+Math.random(),date,price:r.price,lots:r.lots,curPrice:S.prices[r.ticker]?.price||null,expDiv:r.expDiv||null,note:r.note||''});
+      added++;
+    });
+  } else {
+    rows.forEach(r=>{
+      let date=r.date;
+      if(/^\d{2}\.\d{2}\.\d{4}$/.test(date)){const[d,m,y]=date.split('.');date=`${y}-${m}-${d}`;}
+      else if(/^\d{2}\/\d{2}\/\d{4}$/.test(date)){const[d,m,y]=date.split('/');date=`${y}-${m}-${d}`;}
+      if(!date||!r.ticker||r.perShare<=0){skipped++;return;}
+      const s=S.stocks.find(x=>x.ticker===r.ticker);
+      const totalLots=s?s.lots.reduce((a,l)=>a+l.lots,0):0;
+      const total=r.total>0?r.total:totalLots*r.perShare;
+      S.dividends.push({id:Date.now()+Math.random(),ticker:r.ticker,date,perShare:r.perShare,total,period:r.period||''});
+      added++;
+    });
+  }
+  save();
+  document.getElementById('m-import-preview').classList.remove('open');
+  renderAll();
+  fillCmpSels();
+  setTimeout(()=>alert(`✅ ${added} satır aktarıldı${skipped>0?', '+skipped+' satır atlandı (eksik/hatalı veri)':''}.`),100);
+}
+
 function exportAll(){dl('temettu-yedek.json',JSON.stringify(S,null,2),'application/json');}
 function handleImport(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(confirm('Mevcut veriler silinecek. Onaylıyor musunuz?')){S=d;save();renderAll();alert('Yüklendi!');}}catch{alert('Geçersiz dosya.');}};r.readAsText(f);}
 function clearAll(){if(confirm('TÜM veriler silinecek. Emin misiniz?')){S={stocks:[],dividends:[],notes:[],settings:{},prices:{}};save();renderAll();}}
@@ -1806,6 +2045,36 @@ function saveEditLot(){
   save();
   closeModal('m-edit-lot');
   renderAll();
+}
+</script>
+<!-- Excel/CSV İçe Aktarma Önizleme Modalı -->
+<div class="ov" id="m-import-preview">
+  <div class="modal" style="max-width:860px;width:95vw">
+    <div class="mt" id="import-preview-title">📥 İçe Aktarma Önizleme</div>
+    <div id="import-preview-count" style="font-size:.78rem;color:var(--muted2);margin-bottom:14px"></div>
+    <div style="background:var(--sf2);border:1px solid var(--br);border-radius:10px;padding:3px;margin-bottom:16px;max-height:380px;overflow:auto">
+      <div id="import-preview-body"></div>
+    </div>
+    <div style="font-size:.75rem;color:var(--muted2);margin-bottom:16px;padding:10px 14px;background:rgba(0,212,170,.05);border:1px solid rgba(0,212,170,.15);border-radius:8px">
+      ⚠️ Mevcut veriler <strong style="color:var(--text)">silinmez</strong> — yeni kayıtlar eklenecek. Aynı tarihteki aynı hisse alımı varsa tekrar eklenebilir, kontrol edin.
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-import-preview')">İptal</button>
+      <button class="btn bp" id="import-confirm-btn">✓ Aktarımı Onayla</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function downloadTemplate(){
+  const BOM='\uFEFF';
+  const stockSheet = BOM + [
+    ['Hisse Kodu','Şirket Adı','Sektör','Alım Tarihi','Alım Fiyatı (₺)','Adet','Toplam Maliyet (₺)','Beklenen Temettü/Adet (₺)','Not'],
+    ['TUPRS','Tüpraş','Ham Petrol ve Doğalgaz','2024-03-15','250.50','100','25050','22.50','İlk alım'],
+    ['GARAN','Garanti Bankası','Bankalar','2024-04-01','95.80','200','19160','8.00',''],
+    ['FROTO','Ford Otosan','Metal Eşya, Makine ve Ulaşım Araçları','2024-05-10','1250.00','50','62500','175.00','Yüksek temettü'],
+  ].map(r=>r.map(v=>`"${v}"`).join(',')).join('\r\n');
+  dl('temettu-alim-sablonu.csv', stockSheet, 'text/csv;charset=utf-8');
 }
 </script>
 </body>
