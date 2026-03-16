@@ -658,10 +658,86 @@ select option{background:var(--sf2)}
         <div class="fi"><label>Şirket Adı</label><input type="text" id="a-name" placeholder="Tüpraş"></div>
         <div class="fi"><label>Sektör</label>
           <select id="a-sec"><option value="">Seçin...</option>
-            <option>Enerji</option><option>Finans</option><option>Sanayi</option>
-            <option>Tüketim</option><option>Teknoloji</option><option>Sağlık</option>
-            <option>Gayrimenkul</option><option>Tarım</option><option>Holding</option><option>Diğer</option>
-          </select>
+            <optgroup label="── Bankacılık &amp; Finans ──">
+              <option>Bankalar</option>
+              <option>Sigorta</option>
+              <option>Finansal Kiralama ve Faktoring</option>
+              <option>Finansman Şirketleri</option>
+              <option>Aracı Kurumlar</option>
+              <option>Menkul Kıymet Yatırım Ortaklıkları</option>
+              <option>Girişim Sermayesi Yatırım Ortaklıkları</option>
+              <option>Varlık Yönetim Şirketleri</option>
+            </optgroup>
+            <optgroup label="── Holding &amp; Yatırım ──">
+              <option>Holding ve Yatırım Şirketleri</option>
+              <option>Gayrimenkul Yatırım Ortaklıkları (GYO)</option>
+              <option>Borsa Yatırım Fonları</option>
+            </optgroup>
+            <optgroup label="── Enerji ──">
+              <option>Elektrik Üretim ve Dağıtım</option>
+              <option>Yenilenebilir Enerji</option>
+              <option>Enerji Teknolojileri</option>
+              <option>Ham Petrol ve Doğalgaz</option>
+              <option>Petrol Ürünleri ve Rafineri</option>
+              <option>Kömür ve Linyit</option>
+              <option>Doğalgaz Dağıtım</option>
+            </optgroup>
+            <optgroup label="── Sanayi &amp; Üretim ──">
+              <option>Demir ve Çelik</option>
+              <option>Ana Metal Sanayi</option>
+              <option>Otomotiv ve Yan Sanayi</option>
+              <option>Makine ve Teçhizat</option>
+              <option>Savunma Sanayi ve Havacılık</option>
+              <option>Elektrik ve Elektronik</option>
+              <option>Kimya ve Petrokimya</option>
+              <option>İlaç ve Tıbbi Cihaz</option>
+              <option>Lastik ve Plastik</option>
+              <option>Çimento ve İnşaat Malzemeleri</option>
+              <option>Cam ve Seramik</option>
+              <option>Kağıt, Ambalaj ve Baskı</option>
+              <option>Tekstil, Giyim ve Deri</option>
+              <option>Gıda ve İçecek</option>
+              <option>Tütün</option>
+              <option>Orman Ürünleri ve Mobilya</option>
+              <option>Diğer İmalat</option>
+            </optgroup>
+            <optgroup label="── Teknoloji &amp; İletişim ──">
+              <option>Teknoloji ve Yazılım</option>
+              <option>Bilişim Hizmetleri</option>
+              <option>Haberleşme ve Telekomünikasyon</option>
+              <option>E-Ticaret</option>
+              <option>Medya ve Yayıncılık</option>
+            </optgroup>
+            <optgroup label="── İnşaat &amp; Gayrimenkul ──">
+              <option>İnşaat ve Müteahhitlik</option>
+              <option>Gayrimenkul Geliştirme</option>
+              <option>Altyapı</option>
+            </optgroup>
+            <optgroup label="── Ticaret ──">
+              <option>Perakende Ticaret</option>
+              <option>Toptan Ticaret</option>
+              <option>E-Ticaret ve Lojistik Platform</option>
+            </optgroup>
+            <optgroup label="── Hizmetler ──">
+              <option>Ulaştırma ve Havacılık</option>
+              <option>Denizcilik</option>
+              <option>Lojistik ve Depolama</option>
+              <option>Turizm ve Otelcilik</option>
+              <option>Restoran ve Yiyecek-İçecek</option>
+              <option>Sağlık Hizmetleri</option>
+              <option>Eğitim</option>
+              <option>Güvenlik ve Savunma Hizmetleri</option>
+              <option>Mühendislik ve Danışmanlık</option>
+              <option>Sanat, Eğlence ve Spor</option>
+            </optgroup>
+            <optgroup label="── Tarım &amp; Madencilik ──">
+              <option>Tarım ve Hayvancılık</option>
+              <option>Su Ürünleri</option>
+              <option>Metal Cevheri Madenciliği</option>
+              <option>Değerli Maden ve Mücevher</option>
+              <option>Diğer Madencilik</option>
+            </optgroup>
+            <option value="Diğer">Diğer</option></select>
         </div>
       </div>
     </div>
@@ -928,6 +1004,8 @@ function closeModal(id){
   }
   if(id==='m-div'){['d-per','d-tot','d-prd'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});document.getElementById('d-tick').value='';}
   if(id==='m-note'){['n-tick','n-ttl','n-body'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});document.getElementById('n-tag').value='';}
+  if(id==='m-edit-stock'){['es-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('es-sec').value='';}
+  if(id==='m-edit-lot'){['el-date','el-price','el-lots','el-exp','el-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});}
 }
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
 
@@ -1170,6 +1248,7 @@ function renderStocks(){
           <div class="metric"><div class="metric-lbl">Toplam Temettü</div><div class="metric-val mo pos">${fmt(sd)}</div></div>
           ${yld?`<div class="metric"><div class="metric-lbl">Temettü Verimi</div><div class="metric-val"><span class="badge bo">%${yld}</span></div></div>`:''}
           <button class="btn bg2 sm" onclick="openAddModal('${s.ticker}')" style="white-space:nowrap">+ Alım Ekle</button>
+          <button class="btn bg2 sm" onclick="openEditStockModal('${s.ticker}')" style="white-space:nowrap">✏️ Düzenle</button>
           <button class="btn bd sm" onclick="delStock('${s.ticker}')">🗑 Sil</button>
         </div>
       </div>
@@ -1189,7 +1268,10 @@ function renderStocks(){
               <td>${plH}</td>
               <td class="mo">${x.expDiv?fmtN(x.expDiv):'<span style="color:var(--muted)">—</span>'}</td>
               <td style="max-width:130px;font-size:.72rem;color:var(--muted)">${x.note||''}</td>
-              <td><button class="btn bd sm" onclick="delLot('${s.ticker}',${x.id})">🗑</button></td>
+              <td style="white-space:nowrap">
+                <button class="btn bg2 sm" onclick="openEditLotModal('${s.ticker}',${x.id})" style="margin-right:4px">✏️</button>
+                <button class="btn bd sm" onclick="delLot('${s.ticker}',${x.id})">🗑</button>
+              </td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -1540,6 +1622,189 @@ function saveManualPrices(){
     setTimeout(()=>st.innerHTML='',5000);
     document.getElementById('live-badge').style.display='inline-flex';
   }
+  renderAll();
+}
+</script>
+<!-- Hisse Düzenleme Modalı -->
+<div class="ov" id="m-edit-stock">
+  <div class="modal">
+    <div class="mt">✏️ Hisse Bilgilerini Düzenle</div>
+    <input type="hidden" id="es-ticker-orig">
+    <div class="fg">
+      <div class="fi full">
+        <label>Hisse Kodu</label>
+        <div id="es-ticker-display" style="font-family:var(--fm);font-weight:800;color:var(--ac);font-size:1.2rem;padding:8px 0"></div>
+      </div>
+      <div class="fi full"><label>Şirket Adı</label><input type="text" id="es-name" placeholder="Şirket adı"></div>
+      <div class="fi full"><label>Sektör</label>
+        <select id="es-sec"><option value="">Seçin...</option>
+            <optgroup label="── Bankacılık &amp; Finans ──">
+              <option>Bankalar</option>
+              <option>Sigorta</option>
+              <option>Finansal Kiralama ve Faktoring</option>
+              <option>Finansman Şirketleri</option>
+              <option>Aracı Kurumlar</option>
+              <option>Menkul Kıymet Yatırım Ortaklıkları</option>
+              <option>Girişim Sermayesi Yatırım Ortaklıkları</option>
+              <option>Varlık Yönetim Şirketleri</option>
+            </optgroup>
+            <optgroup label="── Holding &amp; Yatırım ──">
+              <option>Holding ve Yatırım Şirketleri</option>
+              <option>Gayrimenkul Yatırım Ortaklıkları (GYO)</option>
+              <option>Borsa Yatırım Fonları</option>
+            </optgroup>
+            <optgroup label="── Enerji ──">
+              <option>Elektrik Üretim ve Dağıtım</option>
+              <option>Yenilenebilir Enerji</option>
+              <option>Enerji Teknolojileri</option>
+              <option>Ham Petrol ve Doğalgaz</option>
+              <option>Petrol Ürünleri ve Rafineri</option>
+              <option>Kömür ve Linyit</option>
+              <option>Doğalgaz Dağıtım</option>
+            </optgroup>
+            <optgroup label="── Sanayi &amp; Üretim ──">
+              <option>Demir ve Çelik</option>
+              <option>Ana Metal Sanayi</option>
+              <option>Otomotiv ve Yan Sanayi</option>
+              <option>Makine ve Teçhizat</option>
+              <option>Savunma Sanayi ve Havacılık</option>
+              <option>Elektrik ve Elektronik</option>
+              <option>Kimya ve Petrokimya</option>
+              <option>İlaç ve Tıbbi Cihaz</option>
+              <option>Lastik ve Plastik</option>
+              <option>Çimento ve İnşaat Malzemeleri</option>
+              <option>Cam ve Seramik</option>
+              <option>Kağıt, Ambalaj ve Baskı</option>
+              <option>Tekstil, Giyim ve Deri</option>
+              <option>Gıda ve İçecek</option>
+              <option>Tütün</option>
+              <option>Orman Ürünleri ve Mobilya</option>
+              <option>Diğer İmalat</option>
+            </optgroup>
+            <optgroup label="── Teknoloji &amp; İletişim ──">
+              <option>Teknoloji ve Yazılım</option>
+              <option>Bilişim Hizmetleri</option>
+              <option>Haberleşme ve Telekomünikasyon</option>
+              <option>E-Ticaret</option>
+              <option>Medya ve Yayıncılık</option>
+            </optgroup>
+            <optgroup label="── İnşaat &amp; Gayrimenkul ──">
+              <option>İnşaat ve Müteahhitlik</option>
+              <option>Gayrimenkul Geliştirme</option>
+              <option>Altyapı</option>
+            </optgroup>
+            <optgroup label="── Ticaret ──">
+              <option>Perakende Ticaret</option>
+              <option>Toptan Ticaret</option>
+              <option>E-Ticaret ve Lojistik Platform</option>
+            </optgroup>
+            <optgroup label="── Hizmetler ──">
+              <option>Ulaştırma ve Havacılık</option>
+              <option>Denizcilik</option>
+              <option>Lojistik ve Depolama</option>
+              <option>Turizm ve Otelcilik</option>
+              <option>Restoran ve Yiyecek-İçecek</option>
+              <option>Sağlık Hizmetleri</option>
+              <option>Eğitim</option>
+              <option>Güvenlik ve Savunma Hizmetleri</option>
+              <option>Mühendislik ve Danışmanlık</option>
+              <option>Sanat, Eğlence ve Spor</option>
+            </optgroup>
+            <optgroup label="── Tarım &amp; Madencilik ──">
+              <option>Tarım ve Hayvancılık</option>
+              <option>Su Ürünleri</option>
+              <option>Metal Cevheri Madenciliği</option>
+              <option>Değerli Maden ve Mücevher</option>
+              <option>Diğer Madencilik</option>
+            </optgroup>
+            <option value="Diğer">Diğer</option></select>
+      </div>
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-edit-stock')">İptal</button>
+      <button class="btn bp" onclick="saveEditStock()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Alım Satırı Düzenleme Modalı -->
+<div class="ov" id="m-edit-lot">
+  <div class="modal">
+    <div class="mt">✏️ Alım Kaydını Düzenle</div>
+    <input type="hidden" id="el-ticker">
+    <input type="hidden" id="el-id">
+    <div class="fg">
+      <div class="fi"><label>Alım Tarihi *</label><input type="date" id="el-date"></div>
+      <div class="fi"><label>Alım Fiyatı (₺) *</label><input type="number" id="el-price" placeholder="250.50" step="0.01"></div>
+      <div class="fi"><label>Adet *</label><input type="number" id="el-lots" placeholder="100"></div>
+      <div class="fi"><label>Beklenen Yıllık Temettü (₺/adet)</label><input type="number" id="el-exp" placeholder="25.00" step="0.01"></div>
+      <div class="fi full"><label>Not</label><input type="text" id="el-note" placeholder="Kısa not..."></div>
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-edit-lot')">İptal</button>
+      <button class="btn bp" onclick="saveEditLot()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Hisse (isim/sektör) düzenleme
+function openEditStockModal(ticker){
+  const s=S.stocks.find(x=>x.ticker===ticker);
+  if(!s)return;
+  document.getElementById('es-ticker-orig').value=ticker;
+  document.getElementById('es-ticker-display').textContent=ticker;
+  document.getElementById('es-name').value=s.name||'';
+  document.getElementById('es-sec').value=s.sector||'';
+  document.getElementById('m-edit-stock').classList.add('open');
+}
+function saveEditStock(){
+  const ticker=document.getElementById('es-ticker-orig').value;
+  const s=S.stocks.find(x=>x.ticker===ticker);
+  if(!s)return;
+  const name=document.getElementById('es-name').value.trim();
+  const sec=document.getElementById('es-sec').value;
+  if(!name){alert('Şirket adı boş olamaz.');return;}
+  s.name=name;
+  s.sector=sec;
+  save();
+  closeModal('m-edit-stock');
+  renderAll();
+}
+
+// Alım satırı düzenleme
+function openEditLotModal(ticker, lotId){
+  const s=S.stocks.find(x=>x.ticker===ticker);
+  if(!s)return;
+  const lot=s.lots.find(l=>l.id===lotId);
+  if(!lot)return;
+  document.getElementById('el-ticker').value=ticker;
+  document.getElementById('el-id').value=lotId;
+  document.getElementById('el-date').value=lot.date||'';
+  document.getElementById('el-price').value=lot.price||'';
+  document.getElementById('el-lots').value=lot.lots||'';
+  document.getElementById('el-exp').value=lot.expDiv||'';
+  document.getElementById('el-note').value=lot.note||'';
+  document.getElementById('m-edit-lot').classList.add('open');
+}
+function saveEditLot(){
+  const ticker=document.getElementById('el-ticker').value;
+  const lotId=parseFloat(document.getElementById('el-id').value);
+  const s=S.stocks.find(x=>x.ticker===ticker);
+  if(!s)return;
+  const lot=s.lots.find(l=>l.id===lotId);
+  if(!lot)return;
+  const date=document.getElementById('el-date').value;
+  const price=parseFloat(document.getElementById('el-price').value);
+  const lots=parseInt(document.getElementById('el-lots').value);
+  if(!date||isNaN(price)||isNaN(lots)||lots<=0){alert('Tarih, fiyat ve adet zorunludur.');return;}
+  lot.date=date;
+  lot.price=price;
+  lot.lots=lots;
+  lot.expDiv=parseFloat(document.getElementById('el-exp').value)||null;
+  lot.note=document.getElementById('el-note').value.trim();
+  save();
+  closeModal('m-edit-lot');
   renderAll();
 }
 </script>
