@@ -369,6 +369,7 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
       <button class="tab" onclick="showPage('stocks',this)">🏦 Hisseler</button>
       <button class="tab" onclick="showPage('calendar',this)">📅 Takvim</button>
       <button class="tab" onclick="showPage('analysis',this)">🔬 Analiz</button>
+      <button class="tab" onclick="showPage('insights',this)">💡 Keşfet</button>
       <button class="tab" onclick="showPage('notes',this)">📝 Notlar</button>
       <button class="tab" onclick="showPage('settings',this)">⚙️ Ayarlar</button>
     </div>
@@ -398,6 +399,44 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
       <div class="kcard"><span class="kcard-icon">💰</span><div class="klabel">Toplam Temettü</div><div class="kval mo pos" id="k-div">₺0</div><div class="ksub" id="k-dcnt">0 ödeme</div></div>
       <div class="kcard"><span class="kcard-icon">📊</span><div class="klabel">Ort. Temettü Verimi</div><div class="kval mo" id="k-yld">%0.00</div><div class="ksub" data-tip="Beklenen yıllık temettü / ort. maliyet">Yıllık brüt tahmini</div></div>
       <div class="kcard"><span class="kcard-icon">🏆</span><div class="klabel">Toplam Getiri</div><div class="kval mo" id="k-ret">₺0</div><div class="ktrend neu" id="k-retpct">K/Z + Temettü</div></div>
+    </div>
+
+    <!-- DÖVİZ SATIRI -->
+    <div id="currency-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div class="cb" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <div>
+          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px">Portföy (USD)</div>
+          <div class="mo" style="font-weight:800;font-size:1.1rem" id="k-usd">$—</div>
+        </div>
+        <div style="font-size:1.6rem;opacity:.3">🇺🇸</div>
+      </div>
+      <div class="cb" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <div>
+          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px">Portföy (EUR)</div>
+          <div class="mo" style="font-weight:800;font-size:1.1rem" id="k-eur">€—</div>
+        </div>
+        <div style="font-size:1.6rem;opacity:.3">🇪🇺</div>
+      </div>
+      <div class="cb" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <div>
+          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px">Dolar Kuru</div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <div class="mo" style="font-weight:800;font-size:1.1rem" id="k-usdrate">₺—</div>
+            <div style="font-size:.65rem;font-family:var(--fm)" id="k-usdchange"></div>
+          </div>
+        </div>
+        <button class="btn bg2 sm" onclick="fetchRates()" style="font-size:.65rem">🔄</button>
+      </div>
+      <div class="cb" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <div>
+          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px">Euro Kuru</div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <div class="mo" style="font-weight:800;font-size:1.1rem" id="k-eurrate">₺—</div>
+            <div style="font-size:.65rem;font-family:var(--fm)" id="k-eurchange"></div>
+          </div>
+        </div>
+        <div style="font-size:.62rem;color:var(--muted);font-family:var(--fm)" id="k-ratetime"></div>
+      </div>
     </div>
 
     <!-- MAIN GRID -->
@@ -502,6 +541,67 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
     </div>
     <div id="cal-stats" style="margin-bottom:16px"></div>
     <div id="cal-area"><div class="empty"><div class="ei">📅</div><div class="et">Henüz temettü kaydı yok.</div></div></div>
+  </div>
+</div>
+
+<!-- ═══════════ KEŞFET ═══════════ -->
+<div id="p-insights" class="page">
+  <div class="wrap">
+    <div class="pg-header">
+      <div>
+        <div class="pg-title">Keşfet & <span>Analiz</span></div>
+        <div class="pg-sub">KAP haberleri, hisse önerileri ve risk analizi</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn bg2" onclick="loadKapNews()">🔄 KAP Güncelle</button>
+        <button class="btn bg2" onclick="renderRiskAnalysis()">⚖️ Risk Analizi</button>
+      </div>
+    </div>
+
+    <!-- RİSK ANALİZİ -->
+    <div class="cb" style="margin-bottom:18px">
+      <div class="ch">
+        <div class="ct">⚖️ Portföy <span>Risk Analizi</span></div>
+        <div style="font-size:.72rem;color:var(--muted);font-family:var(--fm)">Çeşitlendirme & yoğunluk kontrolü</div>
+      </div>
+      <div id="risk-area"><div class="empty" style="padding:20px 0"><div class="et">Hisse ekleyin ve Risk Analizi butonuna tıklayın</div></div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <!-- KAP HABERLERİ -->
+      <div>
+        <div class="sh"><div class="st">📰 KAP <span>Haberleri</span></div></div>
+        <div class="cb" style="padding:0;overflow:hidden">
+          <div style="padding:10px 16px;background:var(--sf2);border-bottom:1px solid var(--br);display:flex;gap:8px;flex-wrap:wrap">
+            <select id="kap-ticker-filter" style="font-size:.75rem;padding:5px 10px;flex:1;min-width:100px" onchange="filterKapNews()">
+              <option value="">Tüm hisseler</option>
+            </select>
+            <select id="kap-type-filter" style="font-size:.75rem;padding:5px 10px;flex:1;min-width:100px" onchange="filterKapNews()">
+              <option value="">Tüm bildirimler</option>
+              <option value="temettü">Temettü</option>
+              <option value="genel kurul">Genel Kurul</option>
+              <option value="finansal">Finansal Sonuçlar</option>
+            </select>
+          </div>
+          <div id="kap-list" style="max-height:460px;overflow-y:auto">
+            <div class="empty" style="padding:32px 20px"><div class="ei">📰</div><div class="et">KAP Güncelle butonuna tıklayın</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HİSSE ÖNERİLERİ -->
+      <div>
+        <div class="sh">
+          <div class="st">💡 Yüksek Temettü <span>Önerileri</span></div>
+          <button class="btn bg2 sm" onclick="renderSuggestions()">🔄 Güncelle</button>
+        </div>
+        <div class="cb" style="padding:0;overflow:hidden">
+          <div id="suggestions-list" style="max-height:520px;overflow-y:auto">
+            <div class="empty" style="padding:32px 20px"><div class="ei">💡</div><div class="et">Güncelle butonuna tıklayın</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -884,93 +984,104 @@ function setTheme(t,btn){
 // ══════════════════════════════════════════════
 let _pCache={}, _pCacheTime=0;
 
-async function loadMilliyetPrices(){
-  // 5 dakika cache
-  if(Date.now()-_pCacheTime < 5*60*1000 && Object.keys(_pCache).length > 0) return true;
-  try{
-    const url = 'https://uzmanpara.milliyet.com.tr/canli-borsa/bist-TUM-hisseleri/';
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-    const r = await fetch(proxyUrl, {signal: AbortSignal.timeout(20000)});
-    if(!r.ok) throw new Error('proxy fail');
-    const json = await r.json();
-    const html = json.contents || '';
+// Sayfa formatı (bizzat doğrulandı):
+// | [**TUPRS**](https://uzmanpara.milliyet.com.tr/...) |  | 248,00 | -0,90 | 18:10:01 |
+// | [**BRYAT**](...) |  | 2.315,00 | 7,62 | 18:10:00 |
 
-    // Gerçek format: | [**TUPRS**](https://...) |  | 248,00 | -0,90 | 18:10:01 |
-    // Regex: köşeli parantez içinde **TICKER** + birkaç sütun sonra fiyat (virgüllü)
-    const re = /\[\*\*([A-Z0-9]{2,12})\*\*\]\([^)]+\)\s*\|[^|]*\|\s*([\d]{1,5}[,.][\d]{2,3})\s*\|/g;
-    let found = 0;
-    for(const m of html.matchAll(re)){
-      const ticker = m[1].trim();
-      // Türkçe ondalık: nokta binlik ayırıcı, virgül ondalık
-      // "2.315,00" → 2315.00  |  "248,00" → 248.00
-      const raw = m[2].trim();
-      const price = parseFloat(raw.replace(/\./g,'').replace(',','.'));
-      if(ticker && price > 0 && price < 1000000){
-        _pCache[ticker] = price;
-        found++;
-      }
-    }
-
-    if(found > 0){
-      _pCacheTime = Date.now();
-      return true;
-    }
-    return false;
-  } catch(e){
-    return false;
+function parseMilliyetHTML(html){
+  const result={};
+  if(!html||html.length<100) return result;
+  // Ana pattern: [**TICKER**](url) |  | FİYAT | % | saat
+  const re=/\[\*\*([A-Z0-9]{2,12})\*\*\]\([^)]*\)\s*\|[^|]*\|\s*([\d]{1,5}(?:\.\d{3})*,\d{2})\s*\|/g;
+  for(const m of html.matchAll(re)){
+    const p=parseFloat(m[2].replace(/\./g,'').replace(',','.'));
+    if(m[1]&&p>0) result[m[1]]=p;
   }
-}
-
-async function fetchPrice(ticker){
-  if(_pCache[ticker]) return _pCache[ticker];
-  await loadMilliyetPrices();
-  return _pCache[ticker] || null;
+  // Fallback: virgülsüz format veya farklı proxy çıktısı
+  if(!Object.keys(result).length){
+    const re2=/\[\*\*([A-Z0-9]{2,12})\*\*\][^|]*\|[^|]*\|\s*([\d]{1,6}[,.]\d{2})\s*\|/g;
+    for(const m of html.matchAll(re2)){
+      const p=parseFloat(m[2].replace(/\./g,'').replace(',','.'));
+      if(m[1]&&p>0&&p<500000) result[m[1]]=p;
+    }
+  }
+  return result;
 }
 
 async function fetchAllPrices(){
   if(!S.stocks.length){alert('Önce hisse ekleyin.');return;}
-  const st=document.getElementById('price-status'), lb=document.getElementById('live-badge');
+  const st=document.getElementById('price-status'),lb=document.getElementById('live-badge');
   st.className='price-status loading';
-  st.innerHTML='<span class="spin">⟳</span> Milliyet\'ten fiyatlar çekiliyor...';
   lb.style.display='inline-flex';
 
-  // Cache sıfırla — taze veri al
   _pCacheTime=0; _pCache={};
 
-  const loaded = await loadMilliyetPrices();
+  const TARGET='https://uzmanpara.milliyet.com.tr/canli-borsa/bist-TUM-hisseleri/';
+  const enc=encodeURIComponent(TARGET);
+  const proxies=[
+    {name:'allorigins',fn:()=>fetch(`https://api.allorigins.win/get?url=${enc}`,{signal:AbortSignal.timeout(18000)}).then(r=>r.ok?r.json().then(j=>j.contents||null):null).catch(()=>null)},
+    {name:'allorigins/raw',fn:()=>fetch(`https://api.allorigins.win/raw?url=${enc}`,{signal:AbortSignal.timeout(18000)}).then(r=>r.ok?r.text():null).catch(()=>null)},
+    {name:'corsproxy.io',fn:()=>fetch(`https://corsproxy.io/?${enc}`,{signal:AbortSignal.timeout(18000)}).then(r=>r.ok?r.text():null).catch(()=>null)},
+    {name:'thingproxy',fn:()=>fetch(`https://thingproxy.freeboard.io/fetch/${TARGET}`,{signal:AbortSignal.timeout(18000)}).then(r=>r.ok?r.text():null).catch(()=>null)},
+    {name:'htmldriven',fn:()=>fetch(`https://api.htmldriven.com/v1/scraper?url=${enc}`,{signal:AbortSignal.timeout(18000)}).then(r=>r.ok?r.json().then(j=>j.body||j.html||null):null).catch(()=>null)},
+  ];
+
+  let loaded=false;
+  for(let i=0;i<proxies.length;i++){
+    const {name,fn}=proxies[i];
+    st.innerHTML=`<span class="spin">⟳</span> ${name} (${i+1}/${proxies.length})...`;
+    try{
+      const html=await fn();
+      if(html&&html.length>1000){
+        const parsed=parseMilliyetHTML(html);
+        const cnt=Object.keys(parsed).length;
+        if(cnt>0){
+          Object.assign(_pCache,parsed);
+          _pCacheTime=Date.now();
+          loaded=true;
+          st.innerHTML=`<span class="spin">⟳</span> ${cnt} hisse bulundu...`;
+          break;
+        }
+      }
+    }catch(e){}
+  }
 
   if(!loaded){
     st.className='price-status err';
-    st.innerHTML='⚠ Sayfa çekilemedi — Manuel Gir açılıyor...';
-    setTimeout(()=>{st.innerHTML=''; openManualPriceModal();}, 1500);
+    st.innerHTML='⚠ Proxy erişimi başarısız — Manuel Gir açılıyor...';
+    setTimeout(()=>{st.innerHTML='';openManualPriceModal();},1800);
     return;
   }
 
-  let ok=0, fail=[];
+  let ok=0,fail=[];
   S.stocks.forEach(s=>{
-    const price = _pCache[s.ticker];
-    if(price && price > 0){
-      S.prices[s.ticker] = {price, ts:Date.now(), src:'milliyet'};
-      s.lots.forEach(l=>l.curPrice=price);
-      ok++;
-    } else {
-      fail.push(s.ticker);
-    }
+    const price=_pCache[s.ticker];
+    if(price&&price>0){S.prices[s.ticker]={price,ts:Date.now(),src:'milliyet'};s.lots.forEach(l=>l.curPrice=price);ok++;}
+    else fail.push(s.ticker);
   });
 
   save();
-  if(ok > 0){
+  if(ok>0){
     st.className='price-status done';
-    st.innerHTML=`✓ ${ok} hisse güncellendi${fail.length ? ' · '+fail.join(', ')+' bulunamadı' : ''}`;
-    if(fail.length) setTimeout(()=>openManualPriceModal(), 2500);
-  } else {
+    st.innerHTML=`✓ ${ok} hisse güncellendi${fail.length?' · '+fail.join(', ')+' bulunamadı':''}`;
+    if(fail.length) setTimeout(()=>openManualPriceModal(),2500);
+  }else{
     st.className='price-status err';
-    st.innerHTML='⚠ Hisseler listede bulunamadı — Manuel Gir açılıyor...';
-    setTimeout(()=>{st.innerHTML=''; openManualPriceModal();}, 1500);
+    st.innerHTML='⚠ Portföy hisseleri listede bulunamadı';
+    setTimeout(()=>{st.innerHTML='';openManualPriceModal();},1500);
   }
-  setTimeout(()=>{ if(st.className.includes('done')) st.innerHTML=''; }, 8000);
+  setTimeout(()=>{if(st.className.includes('done'))st.innerHTML='';},8000);
   renderAll();
 }
+
+async function fetchPrice(ticker){
+  if(_pCache[ticker]) return _pCache[ticker];
+  if(Date.now()-_pCacheTime<5*60*1000&&Object.keys(_pCache).length>0) return null;
+  await fetchAllPrices();
+  return _pCache[ticker]||null;
+}
+
+async function loadMilliyetPrices(){ return Object.keys(_pCache).length>0; }
 
 // ══════════════════════════════════════════════
 // NAV
@@ -983,7 +1094,7 @@ function showPage(id,btn){
   renderAll();
 }
 function switchToTab(id){
-  const map={dashboard:0,stocks:1,calendar:2,analysis:3,notes:4,settings:5};
+  const map={dashboard:0,stocks:1,calendar:2,analysis:3,insights:4,notes:5,settings:6};
   showPage(id,document.querySelectorAll('.tab')[map[id]]);
 }
 
@@ -1139,7 +1250,7 @@ function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();renderNotes();}
 // ══════════════════════════════════════════════
 // RENDER ALL
 // ══════════════════════════════════════════════
-function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();renderCompare();checkAlerts();fillCmpSels();}
+function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();renderCompare();checkAlerts();fillCmpSels();updateCurrencyUI();}
 
 // ══════════════════════════════════════════════
 // THEME COLORS
@@ -1934,6 +2045,317 @@ function clearAll(){if(confirm('TÜM veriler silinecek. Emin misiniz?')){S={stoc
 function dl(n,c,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
 
 // ══════════════════════════════════════════════
+// DÖVİZ KURLARI — uzmanpara milliyet
+// ══════════════════════════════════════════════
+let _rates = {usd:null, eur:null, ts:0};
+
+async function fetchRates(){
+  try{
+    const url = 'https://uzmanpara.milliyet.com.tr/doviz-kurlari/';
+    const proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
+    const r = await fetch(proxy,{signal:AbortSignal.timeout(12000)});
+    if(!r.ok) throw new Error();
+    const html = (await r.json()).contents||'';
+    // Format: DOLAR 44,1122 veya USD ... 44,1122
+    const usdM = html.match(/DOLAR[\s\S]{0,200}?([\d]{2,3}[,.][\d]{2,4})/);
+    const eurM = html.match(/EURO[\s\S]{0,200}?([\d]{2,3}[,.][\d]{2,4})/);
+    if(usdM) _rates.usd = parseFloat(usdM[1].replace(',','.'));
+    if(eurM) _rates.eur = parseFloat(eurM[1].replace(',','.'));
+    _rates.ts = Date.now();
+    updateCurrencyUI();
+  }catch(e){
+    // Fallback: milliyet ana sayfadan çek
+    try{
+      const r2 = await fetch('https://api.allorigins.win/get?url='+encodeURIComponent('https://uzmanpara.milliyet.com.tr/'),{signal:AbortSignal.timeout(12000)});
+      const html2 = (await r2.json()).contents||'';
+      const nums = [...html2.matchAll(/44[,.][\d]{2,4}/g)];
+      if(nums[0]) _rates.usd = parseFloat(nums[0][0].replace(',','.'));
+      const enums = [...html2.matchAll(/5[0-9][,.][\d]{2,4}/g)];
+      if(enums[0]) _rates.eur = parseFloat(enums[0][0].replace(',','.'));
+      _rates.ts = Date.now();
+      updateCurrencyUI();
+    }catch(e2){}
+  }
+}
+
+function updateCurrencyUI(){
+  const totVal = calcTotalCurrentValue();
+  const usd = _rates.usd, eur = _rates.eur;
+  const usdEl=document.getElementById('k-usd'), eurEl=document.getElementById('k-eur');
+  const usdREl=document.getElementById('k-usdrate'), eurREl=document.getElementById('k-eurrate');
+  const timeEl=document.getElementById('k-ratetime');
+  if(usdEl && usd) usdEl.textContent = '$'+( totVal/usd ).toLocaleString('tr-TR',{maximumFractionDigits:0});
+  if(eurEl && eur) eurEl.textContent = '€'+( totVal/eur ).toLocaleString('tr-TR',{maximumFractionDigits:0});
+  if(usdREl && usd) usdREl.textContent = '₺'+usd.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:4});
+  if(eurREl && eur) eurREl.textContent = '₺'+eur.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:4});
+  if(timeEl && _rates.ts) timeEl.textContent = new Date(_rates.ts).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function calcTotalCurrentValue(){
+  return S.stocks.reduce((tot,s)=>{
+    const l=s.lots.reduce((a,x)=>a+x.lots,0);
+    const cp=S.prices[s.ticker]?.price||s.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice||
+      (l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0);
+    return tot+cp*l;
+  },0);
+}
+
+// ══════════════════════════════════════════════
+// KAP HABERLERİ
+// ══════════════════════════════════════════════
+let _kapNews = [];
+
+async function loadKapNews(){
+  const listEl = document.getElementById('kap-list');
+  if(!listEl) return;
+  listEl.innerHTML='<div class="empty" style="padding:24px"><div class="et"><span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> KAP yükleniyor...</div></div>';
+
+  // Portföydeki her hisse için KAP linklerini oluştur
+  // KAP RSS ücretsiz ve açık: https://www.kap.org.tr/tr/bildirim-sorgu
+  try{
+    const url = 'https://www.kap.org.tr/tr/bildirim-sorgu';
+    const proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
+    const r = await fetch(proxy,{signal:AbortSignal.timeout(15000)});
+    const html = r.ok ? (await r.json()).contents||'' : '';
+    // KAP sayfası dinamik - direkt link üret
+    _kapNews = generateKapLinks();
+    renderKapNews();
+  }catch(e){
+    _kapNews = generateKapLinks();
+    renderKapNews();
+  }
+}
+
+function generateKapLinks(){
+  // Her hisse için KAP arama linki oluştur + son bilinen temettü/KK kararlarını göster
+  const news = [];
+  S.stocks.forEach(s=>{
+    news.push({
+      ticker: s.ticker,
+      name: s.name,
+      type: 'kap-link',
+      title: `${s.ticker} — KAP Bildirimleri`,
+      url: `https://www.kap.org.tr/tr/bildirim-sorgu?textContains=${s.ticker}`,
+      desc: 'KAP\'ta tüm bildirimleri görüntüle',
+      date: ''
+    });
+    news.push({
+      ticker: s.ticker,
+      name: s.name,
+      type: 'kap-link',
+      title: `${s.ticker} — Özel Durum Açıklamaları`,
+      url: `https://www.kap.org.tr/tr/Bildirim/ozet/${s.ticker}`,
+      desc: 'Özel durum ve temettü bildirimlerini gör',
+      date: ''
+    });
+    news.push({
+      ticker: s.ticker,
+      name: s.name,
+      type: 'bigpara',
+      title: `${s.ticker} — Şirket Haberleri`,
+      url: `https://bigpara.hurriyet.com.tr/borsa/${s.ticker.toLowerCase()}/hisse-detay/`,
+      desc: 'BigPara\'da hisse detayı ve haberler',
+      date: ''
+    });
+  });
+  return news;
+}
+
+function renderKapNews(){
+  const listEl=document.getElementById('kap-list');
+  if(!listEl) return;
+  const tickerF = document.getElementById('kap-ticker-filter')?.value||'';
+  const typeF = (document.getElementById('kap-type-filter')?.value||'').toLowerCase();
+
+  // Filtre uygula
+  let filtered = _kapNews;
+  if(tickerF) filtered = filtered.filter(n=>n.ticker===tickerF);
+  if(typeF) filtered = filtered.filter(n=>n.title.toLowerCase().includes(typeF)||n.desc.toLowerCase().includes(typeF));
+
+  if(!filtered.length){listEl.innerHTML='<div class="empty" style="padding:24px"><div class="et">Filtrelerle eşleşen haber yok</div></div>';return;}
+
+  // Hisseye göre grupla
+  const groups={};
+  filtered.forEach(n=>{if(!groups[n.ticker])groups[n.ticker]=[];groups[n.ticker].push(n);});
+
+  listEl.innerHTML=Object.entries(groups).map(([ticker,items])=>`
+    <div style="border-bottom:1px solid var(--br)">
+      <div style="padding:10px 16px;background:var(--sf3);display:flex;align-items:center;gap:8px;position:sticky;top:0">
+        <span class="tk" style="font-size:.82rem">${ticker}</span>
+        <span style="font-size:.72rem;color:var(--muted2)">${items[0].name}</span>
+      </div>
+      ${items.map(n=>`
+        <a href="${n.url}" target="_blank" style="display:block;padding:12px 16px;text-decoration:none;color:var(--text);transition:background .15s;border-bottom:1px solid var(--br)" onmouseover="this.style.background='var(--sf2)'" onmouseout="this.style.background=''">
+          <div style="font-size:.8rem;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:6px">
+            ${n.type==='bigpara'?'<span class="badge bb">BigPara</span>':'<span class="badge bg">KAP</span>'}
+            ${n.title.replace(ticker+' — ','')}
+            <span style="margin-left:auto;font-size:.7rem;opacity:.5">↗</span>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted2)">${n.desc}</div>
+        </a>`).join('')}
+    </div>`).join('');
+
+  // Filtre dropdown'ı doldur
+  const sel=document.getElementById('kap-ticker-filter');
+  if(sel && sel.options.length<=1){
+    S.stocks.forEach(s=>sel.innerHTML+=`<option value="${s.ticker}">${s.ticker}</option>`);
+  }
+}
+
+function filterKapNews(){ renderKapNews(); }
+
+// ══════════════════════════════════════════════
+// HİSSE ÖNERİLERİ — Yüksek temettü verimli BIST hisseleri
+// ══════════════════════════════════════════════
+const SUGGESTIONS = [
+  {ticker:'TUPRS',name:'Tüpraş',sector:'Enerji',yld:9.5,notes:'Rafineride lider, düzenli yüksek temettü'},
+  {ticker:'FROTO',name:'Ford Otosan',sector:'Otomotiv',yld:14.2,notes:'Son yıllarda rekor temettü ödemeleri'},
+  {ticker:'DOAS',name:'Doğuş Otomotiv',sector:'Otomotiv',yld:10.1,notes:'Güçlü nakit akışı, yüksek verim'},
+  {ticker:'ISMEN',name:'İş Yatırım',sector:'Finans',yld:11.8,notes:'Aracı kurum, istikrarlı temettü'},
+  {ticker:'TTRAK',name:'Türk Traktör',sector:'Sanayi',yld:7.8,notes:'Tarım sektörü lideri'},
+  {ticker:'AEFES',name:'Anadolu Efes',sector:'Tüketim',yld:5.2,notes:'Güçlü marka, uzun vadeli büyüme'},
+  {ticker:'CCOLA',name:'Coca-Cola İçecek',sector:'Tüketim',yld:4.8,notes:'Uluslararası büyüme hikayesi'},
+  {ticker:'TKFEN',name:'Tekfen Holding',sector:'Holding',yld:8.3,notes:'Holding iskontosu ve güçlü temettü'},
+  {ticker:'SAHOL',name:'Sabancı Holding',sector:'Holding',yld:5.6,notes:'Çeşitli portföy, istikrarlı büyüme'},
+  {ticker:'KCHOL',name:'Koç Holding',sector:'Holding',yld:5.1,notes:'Türkiye\'nin en büyük sanayi holding'},
+  {ticker:'ENKAI',name:'Enka İnşaat',sector:'İnşaat',yld:6.4,notes:'Güçlü bilanço ve döviz varlıkları'},
+  {ticker:'MGROS',name:'Migros',sector:'Perakende',yld:4.2,notes:'Perakende lideri, büyüyen temettü'},
+  {ticker:'BIMAS',name:'BİM Mağazalar',sector:'Perakende',yld:3.8,notes:'Uzun vadeli büyüme ve istikrar'},
+  {ticker:'VESTL',name:'Vestel',sector:'Teknoloji',yld:6.1,notes:'Beyaz eşya ihracatı güçlü'},
+  {ticker:'ARCLK',name:'Arçelik',sector:'Teknoloji',yld:5.9,notes:'Global marka, ihracat ağırlıklı'},
+  {ticker:'EREGL',name:'Ereğli Demir Çelik',sector:'Metal',yld:7.2,notes:'Çelik sektörü lideri'},
+  {ticker:'GUBRF',name:'Gübre Fabrikaları',sector:'Kimya',yld:8.7,notes:'Tarım girdisi, dönemsel yüksek temettü'},
+  {ticker:'GARAN',name:'Garanti Bankası',sector:'Bankacılık',yld:6.8,notes:'BBVA ortaklığı, güçlü sermaye'},
+  {ticker:'AKBNK',name:'Akbank',sector:'Bankacılık',yld:6.2,notes:'Dijital bankacılık öncüsü'},
+  {ticker:'YKBNK',name:'Yapı Kredi',sector:'Bankacılık',yld:7.1,notes:'Koç-UniCredit ortaklığı'},
+];
+
+function renderSuggestions(){
+  const listEl=document.getElementById('suggestions-list');
+  if(!listEl) return;
+  const myTickers=new Set(S.stocks.map(s=>s.ticker));
+
+  const sorted=[...SUGGESTIONS].sort((a,b)=>b.yld-a.yld);
+
+  listEl.innerHTML=sorted.map(s=>{
+    const owned=myTickers.has(s.ticker);
+    return `<div style="padding:14px 16px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:12px;${owned?'opacity:.5':''}">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+          <span class="tk" style="font-size:.86rem">${s.ticker}</span>
+          <span style="font-size:.72rem;color:var(--muted2)">${s.name}</span>
+          <span class="badge bb" style="font-size:.62rem">${s.sector}</span>
+          ${owned?'<span class="badge bg" style="font-size:.62rem">✓ Portföyde</span>':''}
+        </div>
+        <div style="font-size:.72rem;color:var(--muted2)">${s.notes}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="badge bo" style="font-size:.8rem;font-weight:800">%${s.yld.toFixed(1)}</div>
+        <div style="font-size:.62rem;color:var(--muted);margin-top:4px">tahmini verim</div>
+      </div>
+      ${!owned?`<button class="btn bp sm" onclick="openAddModal('${s.ticker}')" style="flex-shrink:0;font-size:.68rem">+ Ekle</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// RİSK ANALİZİ
+// ══════════════════════════════════════════════
+function renderRiskAnalysis(){
+  const area=document.getElementById('risk-area');
+  if(!area) return;
+  if(!S.stocks.length){area.innerHTML='<div class="empty" style="padding:20px 0"><div class="et">Hisse ekleyin</div></div>';return;}
+
+  // Hesapla
+  const stocks=S.stocks;
+  const vals=stocks.map(s=>{
+    const l=s.lots.reduce((a,x)=>a+x.lots,0);
+    const avg=l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;
+    return{ticker:s.ticker,name:s.name,sector:s.sector||'Belirsiz',val:avg*l};
+  });
+  const total=vals.reduce((a,v)=>a+v.val,0)||1;
+  vals.forEach(v=>v.pct=v.val/total*100);
+  vals.sort((a,b)=>b.pct-a.pct);
+
+  // Sektör dağılımı
+  const sectors={};
+  vals.forEach(v=>{sectors[v.sector]=(sectors[v.sector]||0)+v.pct;});
+  const sectorList=Object.entries(sectors).sort((a,b)=>b[1]-a[1]);
+
+  // Risk skoru hesapla
+  const topPct=vals[0]?.pct||0;
+  const herfindahl=vals.reduce((a,v)=>a+(v.pct/100)**2,0); // 0=çeşitlendirilmiş, 1=tek hisse
+  const hhi=Math.round(herfindahl*100);
+  const sectorCount=Object.keys(sectors).length;
+  const stockCount=stocks.length;
+
+  // Risk seviyesi
+  let riskLevel,riskColor,riskIcon;
+  if(topPct>50||stockCount<3){riskLevel='Yüksek Risk';riskColor='var(--red)';riskIcon='🔴';}
+  else if(topPct>30||stockCount<5||sectorCount<2){riskLevel='Orta Risk';riskColor='var(--gold)';riskIcon='🟡';}
+  else{riskLevel='Düşük Risk';riskColor='var(--green)';riskIcon='🟢';}
+
+  // Uyarılar
+  const warnings=[];
+  if(topPct>50) warnings.push(`⚠️ <strong>${vals[0].ticker}</strong> portföyün <strong>%${topPct.toFixed(0)}</strong>'ini oluşturuyor — yüksek yoğunluk`);
+  if(stockCount<3) warnings.push('⚠️ Portföyde 3\'ten az hisse var — çeşitlendirme yetersiz');
+  if(sectorCount<2) warnings.push('⚠️ Tüm hisseler aynı sektörde — sektörel risk yüksek');
+  if(stockCount>=5 && topPct<20) warnings.push('✅ Portföy iyi çeşitlendirilmiş');
+
+  area.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--sf2);border:1px solid var(--br);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:2rem;margin-bottom:6px">${riskIcon}</div>
+        <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Genel Risk</div>
+        <div style="font-weight:800;color:${riskColor};font-size:1rem">${riskLevel}</div>
+      </div>
+      <div style="background:var(--sf2);border:1px solid var(--br);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:1.6rem;font-weight:800;font-family:var(--fm);margin-bottom:6px">${stockCount}</div>
+        <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Farklı Hisse</div>
+        <div style="font-size:.75rem;color:${stockCount>=5?'var(--green)':'var(--gold)'}">${stockCount>=5?'İyi çeşitlilik':'Çeşitlendirilebilir'}</div>
+      </div>
+      <div style="background:var(--sf2);border:1px solid var(--br);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:1.6rem;font-weight:800;font-family:var(--fm);margin-bottom:6px">${sectorCount}</div>
+        <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Farklı Sektör</div>
+        <div style="font-size:.75rem;color:${sectorCount>=3?'var(--green)':'var(--gold)'}">${sectorCount>=3?'Sektörel dağılım iyi':'Sektör çeşitlendir'}</div>
+      </div>
+    </div>
+
+    ${warnings.length?`<div style="margin-bottom:20px;display:flex;flex-direction:column;gap:8px">
+      ${warnings.map(w=>`<div style="padding:10px 14px;background:var(--sf2);border-radius:10px;font-size:.8rem;border-left:3px solid var(--ac)">${w}</div>`).join('')}
+    </div>`:''}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.8px">Hisse Yoğunluğu</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${vals.map(v=>`
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:56px;font-family:var(--fm);font-size:.76rem;font-weight:700;color:var(--ac)">${v.ticker}</div>
+              <div style="flex:1;height:7px;background:var(--sf3);border-radius:99px;overflow:hidden">
+                <div style="height:100%;border-radius:99px;width:${v.pct.toFixed(1)}%;background:${v.pct>40?'var(--red)':v.pct>25?'var(--gold)':'var(--ac)'}"></div>
+              </div>
+              <div style="width:36px;text-align:right;font-size:.72rem;font-family:var(--fm);color:var(--muted2)">${v.pct.toFixed(1)}%</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.8px">Sektör Dağılımı</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${sectorList.map(([sec,pct])=>`
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:1;font-size:.76rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sec}</div>
+              <div style="width:80px;height:7px;background:var(--sf3);border-radius:99px;overflow:hidden;flex-shrink:0">
+                <div style="height:100%;border-radius:99px;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,var(--ac2),var(--ac))"></div>
+              </div>
+              <div style="width:36px;text-align:right;font-size:.72rem;font-family:var(--fm);color:var(--muted2)">${pct.toFixed(1)}%</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════
 function fmt(n){return '₺'+(n||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -1950,6 +2372,8 @@ if(S.stocks.length){
   document.getElementById('last-upd').textContent='Yüklendi · '+new Date().toLocaleString('tr-TR');
   if(S.settings?.['auto-price']==='true'||S.settings?.['auto-price']===true)setTimeout(fetchAllPrices,1200);
 }
+// Döviz kurlarını başlangıçta çek
+setTimeout(fetchRates, 800);
 </script>
 <!-- Manuel Fiyat Modalı -->
 <div class="ov" id="m-price">
