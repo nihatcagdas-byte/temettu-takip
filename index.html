@@ -878,72 +878,95 @@ function setTheme(t,btn){
 }
 
 // ══════════════════════════════════════════════
-// FİYAT GÜNCELLEME
-// Foreks public API denenır, CORS engeli varsa
-// kullanıcıya bilgi verilir ve manuel açılır.
+// FİYAT GÜNCELLEME — uzmanpara.milliyet.com.tr
+// Tüm hisseler tek seferde çekilir, 5dk cache
 // ══════════════════════════════════════════════
+let _pCache={}, _pCacheTime=0;
+
+async function loadMilliyetPrices(){
+  if(Date.now()-_pCacheTime<5*60*1000 && Object.keys(_pCache).length>0) return true;
+  try{
+    const url='https://uzmanpara.milliyet.com.tr/canli-borsa/bist-TUM-hisseleri';
+    const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(20000)});
+    if(!r.ok) throw new Error('proxy fail');
+    const html=(await r.json()).contents||'';
+    let found=0;
+
+    // Pattern 1: markdown link format — [**TICKER**](url) | | 248,00 | ...
+    for(const m of html.matchAll(/\[\*\*([A-Z0-9]{2,10})\*\*\][^\|]*\|[^\|]*\|\s*([\d]{1,6}[,.][\d]{2})\s*\|/g)){
+      const p=parseFloat(m[2].replace(/\./g,'').replace(',','.'));
+      if(p>0){_pCache[m[1]]=p;found++;}
+    }
+
+    // Pattern 2: HTML bold tag — <strong>TICKER</strong> ... 248,00
+    if(found===0){
+      for(const m of html.matchAll(/<strong>([A-Z0-9]{2,10})<\/strong>[\s\S]{1,200}?>\s*([\d]{1,6}[,.][\d]{2})\s*</g)){
+        const p=parseFloat(m[2].replace(/\./g,'').replace(',','.'));
+        if(p>0){_pCache[m[1]]=p;found++;}
+      }
+    }
+
+    // Pattern 3: pipe-table satırı — TICKER ... | 248,00 | yüzde | saat
+    if(found===0){
+      for(const m of html.matchAll(/([A-Z]{2,10})\s*\|\s*[^\|]*\|\s*([\d]{1,6}[,.][\d]{2})\s*\|\s*[\d.,]+\s*\|\s*\d{2}:\d{2}/g)){
+        const p=parseFloat(m[2].replace(/\./g,'').replace(',','.'));
+        if(p>0){_pCache[m[1]]=p;found++;}
+      }
+    }
+
+    if(found>0){_pCacheTime=Date.now();return true;}
+    return false;
+  }catch(e){return false;}
+}
+
 async function fetchPrice(ticker){
-  // Foreks public endpoint — CORS izni var
-  try{
-    const url=`https://web-paragaranti-pubsub.foreks.com/web-services/securities/definition?name=${ticker}&group=E&exchange=BIST`;
-    const r=await fetch(url,{signal:AbortSignal.timeout(5000)});
-    if(r.ok){
-      const d=await r.json();
-      const p=d?.last||d?.close||d?.price||d?.lastPrice;
-      if(p&&parseFloat(p)>0) return parseFloat(p);
-    }
-  }catch(e){}
-
-  // Foreks hisse detay endpoint
-  try{
-    const url2=`https://web-paragaranti-pubsub.foreks.com/web-services/securities?name=${ticker}&exchange=BIST`;
-    const r2=await fetch(url2,{signal:AbortSignal.timeout(5000)});
-    if(r2.ok){
-      const d2=await r2.json();
-      const item=Array.isArray(d2)?d2[0]:d2;
-      const p=item?.las||item?.last||item?.close||item?.lst;
-      if(p&&parseFloat(p)>0) return parseFloat(p);
-    }
-  }catch(e){}
-
-  return null;
+  if(_pCache[ticker]) return _pCache[ticker];
+  await loadMilliyetPrices();
+  return _pCache[ticker]||null;
 }
 
 async function fetchAllPrices(){
   if(!S.stocks.length){alert('Önce hisse ekleyin.');return;}
   const st=document.getElementById('price-status'),lb=document.getElementById('live-badge');
   st.className='price-status loading';
-  st.innerHTML='<span class="spin">⟳</span> Fiyatlar çekiliyor...';
+  st.innerHTML='<span class="spin">⟳</span> Milliyet\'ten çekiliyor...';
   lb.style.display='inline-flex';
 
+  // Cache sıfırla — taze veri al
+  _pCacheTime=0; _pCache={};
+
+  const loaded=await loadMilliyetPrices();
+
+  if(!loaded){
+    st.className='price-status err';
+    st.innerHTML='⚠ Sayfa çekilemedi — Manuel Gir açılıyor...';
+    setTimeout(()=>{st.innerHTML='';openManualPriceModal();},1500);
+    return;
+  }
+
   let ok=0,fail=[];
-  for(const s of S.stocks){
-    st.innerHTML=`<span class="spin">⟳</span> ${s.ticker} (${ok}/${S.stocks.length})`;
-    const price=await fetchPrice(s.ticker);
+  S.stocks.forEach(s=>{
+    const price=_pCache[s.ticker];
     if(price){
-      S.prices[s.ticker]={price,ts:Date.now()};
+      S.prices[s.ticker]={price,ts:Date.now(),src:'milliyet'};
       s.lots.forEach(l=>l.curPrice=price);
       ok++;
     } else {
       fail.push(s.ticker);
     }
-    await new Promise(r=>setTimeout(r,250));
-  }
+  });
 
   save();
   if(ok>0){
     st.className='price-status done';
-    st.innerHTML=`✓ ${ok} hisse güncellendi${fail.length?' · '+fail.join(',')+' manuel girin':''}`;
-    if(fail.length) setTimeout(()=>openManualPriceModal(),1500);
+    st.innerHTML=`✓ ${ok} hisse güncellendi${fail.length?' · '+fail.join(', ')+' bulunamadı':''}`;
+    if(fail.length) setTimeout(()=>openManualPriceModal(),2000);
   } else {
     st.className='price-status err';
-    st.innerHTML='⚠ Otomatik çekilemedi';
-    setTimeout(()=>{
-      st.innerHTML='';
-      openManualPriceModal();
-    },1200);
+    st.innerHTML='⚠ Hisseler listede bulunamadı — Manuel Gir açılıyor...';
+    setTimeout(()=>{st.innerHTML='';openManualPriceModal();},1500);
   }
-  setTimeout(()=>{ if(st.innerHTML.startsWith('✓')) st.innerHTML=''; },8000);
+  setTimeout(()=>{if(st.className.includes('done'))st.innerHTML='';},8000);
   renderAll();
 }
 
