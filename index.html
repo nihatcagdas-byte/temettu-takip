@@ -314,6 +314,23 @@ th.sortable:hover{color:var(--text);background:var(--sf3)}
 th.sortable .sort-icon{display:inline-block;margin-left:5px;font-size:.65rem;opacity:.35;transition:opacity .15s}
 th.sortable:hover .sort-icon{opacity:.7}
 th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)}
+
+/* AY SEÇİCİ */
+.month-btn{padding:4px 9px;border-radius:6px;font-size:.7rem;font-weight:700;cursor:pointer;
+  border:1px solid var(--br);background:var(--sf3);color:var(--muted);transition:all .15s;
+  font-family:var(--fm);user-select:none}
+.month-btn:hover{border-color:var(--ac);color:var(--ac)}
+.month-btn.selected{background:rgba(0,212,170,.15);border-color:var(--ac);color:var(--ac)}
+[data-theme="amber"] .month-btn.selected{background:rgba(217,119,6,.15);border-color:var(--ac);color:var(--ac)}
+[data-theme="purple"] .month-btn.selected{background:rgba(168,85,247,.15);border-color:var(--ac);color:var(--ac)}
+
+/* TEMETTİ AY BADGE — tabloda */
+.div-month{display:inline-block;padding:2px 7px;border-radius:5px;font-size:.62rem;
+  font-weight:700;font-family:var(--fm);margin:1px 2px;border:1px solid transparent}
+.div-month.normal{background:var(--sf3);color:var(--muted2);border-color:var(--br)}
+.div-month.current{background:rgba(245,197,24,.18);color:var(--gold);border-color:rgba(245,197,24,.4);
+  animation:mpulse 2s ease infinite}
+@keyframes mpulse{0%,100%{box-shadow:0 0 0 0 rgba(245,197,24,0)}50%{box-shadow:0 0 0 3px rgba(245,197,24,.2)}}
 .save-pulse{animation:savepulse .5s ease}
 @keyframes savepulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
 #save-btn{background:var(--ac);color:#000;font-weight:800}
@@ -778,6 +795,13 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
       <div class="fi"><label>Alım Fiyatı (₺) *</label><input type="number" id="a-price" placeholder="250.50" step="0.01"></div>
       <div class="fi"><label>Adet *</label><input type="number" id="a-lots" placeholder="100"></div>
       <div class="fi"><label>Beklenen Yıllık Temettü (₺/adet)</label><input type="number" id="a-exp" placeholder="25.00" step="0.01"></div>
+      <div class="fi full">
+        <label>Tahmini Temettü Ay(lar)ı</label>
+        <div id="a-months-picker" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:2px">
+          <!-- JS ile doldurulacak -->
+        </div>
+        <div style="font-size:.65rem;color:var(--muted);margin-top:5px">Birden fazla ay seçilebilir (örn: Nisan + Ekim)</div>
+      </div>
       <div class="fi full"><label>Not</label><input type="text" id="a-note" placeholder="Kısa not..."></div>
     </div>
 
@@ -942,7 +966,6 @@ function switchToTab(id){
 // MODALS
 // ══════════════════════════════════════════════
 function openAddModal(prefillTicker){
-  // Mevcut hisseleri dropdown'a doldur
   const sel=document.getElementById('a-tick-sel');
   sel.innerHTML='<option value="">— Yeni hisse ekle —</option>';
   S.stocks.forEach(s=>sel.innerHTML+=`<option value="${s.ticker}">${s.ticker} — ${s.name}</option>`);
@@ -954,8 +977,8 @@ function openAddModal(prefillTicker){
   document.getElementById('a-new-fields').style.display='none';
   document.getElementById('a-existing-info').style.display='none';
   document.getElementById('m-add-title').textContent='📈 Hisse Alımı Ekle';
+  initMonthPicker([]);
 
-  // Eğer belirli bir hisse için açıldıysa (hisseler sayfasındaki + butonu)
   if(prefillTicker){
     sel.value=prefillTicker;
     onTickerSelect(prefillTicker);
@@ -994,6 +1017,8 @@ function onTickerSelect(val){
       // Beklenen temettüyü mevcut ortalamadan doldur
       const avgExp=s.lots.filter(l=>l.expDiv).map(l=>l.expDiv);
       if(avgExp.length) document.getElementById('a-exp').value=(avgExp.reduce((a,b)=>a+b,0)/avgExp.length).toFixed(2);
+      // Mevcut temettü aylarını doldur
+      initMonthPicker(s.divMonths||[]);
     }
     document.getElementById('m-add-title').textContent=`📈 ${val} — Yeni Alım Ekle`;
   }
@@ -1031,10 +1056,11 @@ function closeModal(id){
     document.getElementById('a-new-fields').style.display='none';
     document.getElementById('a-existing-info').style.display='none';
     document.getElementById('a-new-ticker-wrap').style.display='flex';
+    initMonthPicker([]);
   }
   if(id==='m-div'){['d-per','d-tot','d-prd'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});document.getElementById('d-tick').value='';}
   if(id==='m-note'){['n-tick','n-ttl','n-body'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});document.getElementById('n-tag').value='';}
-  if(id==='m-edit-stock'){['es-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('es-sec').value='';}
+  if(id==='m-edit-stock'){['es-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('es-sec').value='';initMonthPicker([],'es-months-picker');}
   if(id==='m-edit-lot'){['el-date','el-price','el-lots','el-exp','el-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});}
   if(id==='m-import-preview'){document.getElementById('import-preview-body').innerHTML='';}
 }
@@ -1055,10 +1081,12 @@ function saveStock(){
   if(!date||isNaN(price)||isNaN(lots)||lots<=0){alert('Tarih, fiyat ve adet zorunludur.');return;}
   let s=S.stocks.find(x=>x.ticker===tick);
   if(!s){
-    // Yeni hisse
-    s={ticker:tick,name:document.getElementById('a-name').value.trim()||tick,sector:document.getElementById('a-sec').value,lots:[]};
+    s={ticker:tick,name:document.getElementById('a-name').value.trim()||tick,sector:document.getElementById('a-sec').value,lots:[],divMonths:[]};
     S.stocks.push(s);
   }
+  // Temettü aylarını güncelle (hisse seviyesinde saklanır)
+  const selMonths=getSelectedMonths();
+  if(selMonths.length>0) s.divMonths=selMonths;
   // Mevcut hissede isim/sektör güncelleme yok — sadece alım ekleniyor
   s.lots.push({id:Date.now()+Math.random(),date,price,lots,curPrice:S.prices[tick]?.price||null,expDiv:parseFloat(document.getElementById('a-exp').value)||null,note:document.getElementById('a-note').value.trim()});
   save();closeModal('m-add');renderAll();fillCmpSels();
@@ -1104,10 +1132,45 @@ function sortTable(col){
     window._ptSort.dir = window._ptSort.dir==='asc'?'desc':'asc';
   } else {
     window._ptSort.col=col;
-    // Sayısal kolonlar için varsayılan azalan, metin için artan
     window._ptSort.dir=['ticker'].includes(col)?'asc':'desc';
   }
   renderDashboard();
+}
+
+// ══════════════════════════════════════════════
+// AY SEÇİCİ
+// ══════════════════════════════════════════════
+const MONTHS_TR=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+const MONTHS_FULL=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+function initMonthPicker(selected=[], containerId='a-months-picker'){
+  const wrap=document.getElementById(containerId);
+  if(!wrap)return;
+  wrap.innerHTML=MONTHS_TR.map((m,i)=>`
+    <button type="button" class="month-btn${selected.includes(i+1)?' selected':''}"
+      data-month="${i+1}" onclick="toggleMonth(this,'${containerId}')">${m}</button>`
+  ).join('');
+}
+
+function toggleMonth(btn, containerId='a-months-picker'){
+  btn.classList.toggle('selected');
+}
+
+function getSelectedMonths(containerId='a-months-picker'){
+  const wrap=document.getElementById(containerId);
+  if(!wrap)return[];
+  return [...wrap.querySelectorAll('.month-btn.selected')].map(b=>parseInt(b.dataset.month));
+}
+
+// Temettü ayı badge HTML'i üretir
+function divMonthBadges(months){
+  if(!months||!months.length) return '<span style="color:var(--muted);font-size:.7rem">—</span>';
+  const curMonth=new Date().getMonth()+1;
+  return months.sort((a,b)=>a-b).map(m=>`
+    <span class="div-month ${m===curMonth?'current':'normal'}" 
+      title="${MONTHS_FULL[m-1]}${m===curMonth?' — Bu ay!':''}">
+      ${MONTHS_TR[m-1]}${m===curMonth?' 🔔':''}
+    </span>`).join('');
 }
 
 // ══════════════════════════════════════════════
@@ -1147,20 +1210,21 @@ function renderDashboard(){
 
   // Kolon tanımları
   const COLS=[
-    {key:'ticker',  label:'Hisse',   tip:null},
-    {key:'lots',    label:'Adet',    tip:null},
-    {key:'avg',     label:'Ort.Fiyat',tip:null},
-    {key:'cur',     label:'Güncel',  tip:null},
-    {key:'pl',      label:'K/Z',     tip:'Fiyat kar/zararı'},
-    {key:'div',     label:'Temettü', tip:'Toplam alınan temettü'},
-    {key:'yld',     label:'Verim',   tip:'Beklenen yıllık temettü verimi'},
-    {key:'trend',   label:'Trend',   tip:'Son temettü ödemeleri trendi',sort:false},
-    {key:'_act',    label:'',        sort:false},
+    {key:'ticker',  label:'Hisse',        tip:null},
+    {key:'lots',    label:'Adet',         tip:null},
+    {key:'avg',     label:'Ort.Fiyat',    tip:null},
+    {key:'cur',     label:'Güncel',       tip:null},
+    {key:'pl',      label:'K/Z',          tip:'Fiyat kar/zararı'},
+    {key:'div',     label:'Temettü',      tip:'Toplam alınan temettü'},
+    {key:'yld',     label:'Verim',        tip:'Beklenen yıllık temettü verimi'},
+    {key:'months',  label:'Temettü Ayı',  tip:'Tahmini temettü ödeme ayları',sort:false},
+    {key:'trend',   label:'Trend',        tip:'Son temettü ödemeleri trendi',sort:false},
+    {key:'_act',    label:'',             sort:false},
   ];
 
   // Thead oluştur
   th.innerHTML = COLS.map(c=>{
-    if(c.sort===false) return `<th>${c.label}</th>`;
+    if(c.sort===false) return `<th${c.tip?` data-tip="${c.tip}"`:''}>${c.label}</th>`;
     const active=window._ptSort.col===c.key;
     const dir=active?window._ptSort.dir:'asc';
     const icon=active?(dir==='asc'?'▲':'▼'):'⇅';
@@ -1168,9 +1232,8 @@ function renderDashboard(){
   }).join('');
 
   if(!stocks.length){
-    tb.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📭</div><div class="et">Hisse eklemek için sağ üstteki butonu kullanın</div></div></td></tr>';
+    tb.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">📭</div><div class="et">Hisse eklemek için sağ üstteki butonu kullanın</div></div></td></tr>';
   } else {
-    // Her hisse için hesapla
     let rows = stocks.map(s=>{
       const l=s.lots.reduce((a,x)=>a+x.lots,0),avg=l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;
       const sd=divs.filter(d=>d.ticker===s.ticker).reduce((a,d)=>a+d.total,0);
@@ -1200,6 +1263,7 @@ function renderDashboard(){
       let plH='<span style="color:var(--muted)">—</span>',curH='<span style="color:var(--muted)">—</span>';
       if(cp){const pp=((cp-avg)/avg*100).toFixed(1);curH=`<span class="mo">${fmtN(cp)}</span>`;plH=`<span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':''}${fmt(pl)}<small style="opacity:.7"> ${pl>=0?'+':''}${pp}%</small></span>`;}
       const spark=drawSparkSVG(s.ticker);
+      const monthBadges=divMonthBadges(s.divMonths);
       return `<tr onclick="switchToTab('stocks')">
         <td><div class="tk">${s.ticker}</div><div style="font-size:.68rem;color:var(--muted)">${s.name}</div></td>
         <td class="mo">${l.toLocaleString('tr-TR')}</td>
@@ -1207,6 +1271,7 @@ function renderDashboard(){
         <td>${curH}</td><td>${plH}</td>
         <td class="mo pos">${fmt(sd)}</td>
         <td>${yld!==null?`<span class="badge bo" data-tip="Yıllık beklenen verim / maliyet">%${yld.toFixed(2)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+        <td style="white-space:nowrap">${monthBadges}</td>
         <td>${spark}</td>
         <td><button class="btn bd sm" onclick="event.stopPropagation();delStock('${s.ticker}')">🗑</button></td>
       </tr>`;
@@ -2026,6 +2091,11 @@ function saveManualPrices(){
             </optgroup>
             <option value="Diğer">Diğer</option></select>
       </div>
+      <div class="fi full">
+        <label>Tahmini Temettü Ay(lar)ı</label>
+        <div id="es-months-picker" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:2px"></div>
+        <div style="font-size:.65rem;color:var(--muted);margin-top:5px">Birden fazla ay seçilebilir</div>
+      </div>
     </div>
     <div class="ma">
       <button class="btn bg2" onclick="closeModal('m-edit-stock')">İptal</button>
@@ -2063,6 +2133,7 @@ function openEditStockModal(ticker){
   document.getElementById('es-ticker-display').textContent=ticker;
   document.getElementById('es-name').value=s.name||'';
   document.getElementById('es-sec').value=s.sector||'';
+  initMonthPicker(s.divMonths||[],'es-months-picker');
   document.getElementById('m-edit-stock').classList.add('open');
 }
 function saveEditStock(){
@@ -2074,6 +2145,7 @@ function saveEditStock(){
   if(!name){alert('Şirket adı boş olamaz.');return;}
   s.name=name;
   s.sector=sec;
+  s.divMonths=getSelectedMonths('es-months-picker');
   save();
   closeModal('m-edit-stock');
   renderAll();
