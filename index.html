@@ -2713,6 +2713,7 @@ function updatePlannerRow(id, field, value){
     if(field==='pct') row.pct = parseFloat(value)||0;
     else if(field==='manualPrice') row.manualPrice = parseFloat(value)||'';
     else row[field] = value;
+    savePlanner();
   }
   calcPlanner();
 }
@@ -2878,9 +2879,11 @@ if(S.stocks.length){
   document.getElementById('last-upd').textContent='Yüklendi · '+new Date().toLocaleString('tr-TR');
   if(S.settings?.['auto-price']==='true'||S.settings?.['auto-price']===true)setTimeout(fetchAllPrices,1200);
 }
-// Planlayıcıyı yükle
-loadPlanner();
-if(_plannerRows.length){ renderPlannerRows(); calcPlanner(); }
+// Planlayıcıyı yükle — DOM tamamen hazır olduğundan emin ol
+setTimeout(()=>{
+  loadPlanner();
+  if(_plannerRows.length){ renderPlannerRows(); calcPlanner(); }
+}, 0);
 // Döviz kurlarını başlangıçta çek
 setTimeout(fetchRates, 800);
 </script>
