@@ -315,7 +315,13 @@ th.sortable .sort-icon{display:inline-block;margin-left:5px;font-size:.65rem;opa
 th.sortable:hover .sort-icon{opacity:.7}
 th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)}
 
-/* AY SEÇİCİ */
+/* SORT CHIP */
+.sort-chip{padding:5px 12px;border-radius:20px;font-size:.72rem;font-weight:600;
+  cursor:pointer;border:1px solid var(--br);background:var(--sf2);color:var(--muted);
+  transition:all .15s;font-family:var(--fd);white-space:nowrap}
+.sort-chip:hover{border-color:var(--ac);color:var(--ac)}
+.sort-chip.active{background:var(--ac);border-color:var(--ac);color:#000}
+[data-theme="amber"] .sort-chip.active,[data-theme="purple"] .sort-chip.active{color:#fff}
 .month-btn{padding:4px 9px;border-radius:6px;font-size:.7rem;font-weight:700;cursor:pointer;
   border:1px solid var(--br);background:var(--sf3);color:var(--muted);transition:all .15s;
   font-family:var(--fm);user-select:none}
@@ -518,10 +524,31 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
     <div class="pg-header">
       <div>
         <div class="pg-title">Hisse <span>Defteri</span></div>
-        <div class="pg-sub">Tüm alım kayıtları — tarih bazlı detay görünümü</div>
+        <div class="pg-sub">Tüm alım kayıtları — detay görünümü</div>
       </div>
       <button class="btn bp" onclick="openAddModal()">+ Alım Ekle</button>
     </div>
+
+    <!-- ÖZET BANDI -->
+    <div id="stocks-summary" style="display:none;margin-bottom:16px"></div>
+
+    <!-- SIRALAMA & FİLTRE -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;
+      padding:10px 14px;background:var(--sf);border:1px solid var(--br);border-radius:12px">
+      <span style="font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase">Sırala:</span>
+      <div style="display:flex;gap:4px;flex-wrap:wrap" id="stocks-sort-btns">
+        <button class="sort-chip active" data-col="ticker" data-dir="asc" onclick="setStocksSort('ticker',this)">Kod A→Z</button>
+        <button class="sort-chip" data-col="name" data-dir="asc" onclick="setStocksSort('name',this)">İsim A→Z</button>
+        <button class="sort-chip" data-col="cost" data-dir="desc" onclick="setStocksSort('cost',this)">Maliyet ↓</button>
+        <button class="sort-chip" data-col="lots" data-dir="desc" onclick="setStocksSort('lots',this)">Adet ↓</button>
+        <button class="sort-chip" data-col="avg" data-dir="asc" onclick="setStocksSort('avg',this)">Ort.Fiyat ↑</button>
+        <button class="sort-chip" data-col="pl" data-dir="desc" onclick="setStocksSort('pl',this)">K/Z ↓</button>
+        <button class="sort-chip" data-col="div" data-dir="desc" onclick="setStocksSort('div',this)">Temettü ↓</button>
+        <button class="sort-chip" data-col="yld" data-dir="desc" onclick="setStocksSort('yld',this)">Verim ↓</button>
+        <button class="sort-chip" data-col="sector" data-dir="asc" onclick="setStocksSort('sector',this)">Sektör A→Z</button>
+      </div>
+    </div>
+
     <div id="stocks-area"><div class="empty"><div class="ei">📋</div><div class="et">Henüz alım kaydı yok.</div></div></div>
   </div>
 </div>
@@ -612,6 +639,55 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
       <div>
         <div class="pg-title">Analiz <span>Araçları</span></div>
         <div class="pg-sub">Hisse karşılaştırma ve portföy projeksiyonu</div>
+      </div>
+    </div>
+
+    <!-- ALIM PLANLAYCISI -->
+    <div class="cb" style="margin-bottom:18px">
+      <div class="ch">
+        <div class="ct">🎯 Alım <span>Planlayıcısı</span></div>
+        <div style="font-size:.72rem;color:var(--muted);font-family:var(--fm)">Bütçeyi hisselere yüzdesel dağıt, kaç adet alınacağını hesapla</div>
+      </div>
+
+      <!-- BÜTÇE GİRİŞİ -->
+      <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <div class="fi" style="flex:1;min-width:200px">
+          <label>Toplam Bütçe (₺)</label>
+          <input type="number" id="planner-budget" placeholder="10.000" step="100" oninput="calcPlanner()">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;padding-bottom:2px">
+          <button class="btn bg2 sm" onclick="addPlannerRow()">+ Hisse Ekle</button>
+          <button class="btn bp sm" onclick="addAllPortfolioToPlan()">📋 Portföyden Ekle</button>
+          <button class="btn bd sm" onclick="clearPlanner()">🗑 Temizle</button>
+        </div>
+      </div>
+
+      <!-- YÜZDE TOPLAMI GÖSTERGESI -->
+      <div id="planner-pct-bar" style="margin-bottom:16px;display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px">Yüzde Dağılımı</span>
+          <span id="planner-pct-total" style="font-size:.78rem;font-family:var(--fm);font-weight:700"></span>
+        </div>
+        <div style="height:8px;background:var(--sf3);border-radius:99px;overflow:hidden">
+          <div id="planner-pct-fill" style="height:100%;border-radius:99px;transition:width .3s,background .3s"></div>
+        </div>
+      </div>
+
+      <!-- HİSSE SATIRLARI -->
+      <div id="planner-rows" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+        <div style="color:var(--muted);font-size:.82rem;text-align:center;padding:16px 0">
+          "+ Hisse Ekle" veya "Portföyden Ekle" ile başlayın
+        </div>
+      </div>
+
+      <!-- SONUÇ -->
+      <div id="planner-result" style="display:none">
+        <div style="height:1px;background:var(--br);margin-bottom:16px"></div>
+        <div class="ch" style="margin-bottom:12px">
+          <div class="ct">📊 Alım <span>Planı</span></div>
+          <button class="btn bg2 sm" onclick="exportPlannerCSV()">⬇ CSV</button>
+        </div>
+        <div id="planner-result-body"></div>
       </div>
     </div>
 
@@ -1515,18 +1591,92 @@ function renderHeatmap(){
 }
 
 // ══════════════════════════════════════════════
-// STOCKS PAGE
+// STOCKS PAGE — sıralama state
 // ══════════════════════════════════════════════
+let _stocksSort = {col:'ticker', dir:'asc'};
+
+function setStocksSort(col, btn){
+  if(_stocksSort.col === col){
+    _stocksSort.dir = _stocksSort.dir==='asc'?'desc':'asc';
+  } else {
+    _stocksSort.col = col;
+    // Metin kolonları asc, sayısal desc varsayılan
+    _stocksSort.dir = ['ticker','name','sector'].includes(col)?'asc':'desc';
+  }
+  // Buton etiketini güncelle
+  const dirArrow = _stocksSort.dir==='asc'?'↑':'↓';
+  const labels = {ticker:'Kod',name:'İsim',cost:'Maliyet',lots:'Adet',avg:'Ort.Fiyat',pl:'K/Z',div:'Temettü',yld:'Verim',sector:'Sektör'};
+  document.querySelectorAll('.sort-chip').forEach(b=>{
+    b.classList.remove('active');
+    const c=b.dataset.col;
+    b.textContent = labels[c] + (c==='ticker'?' A→Z':c==='name'?' A→Z':c==='avg'?' ↑↓':c==='sector'?' A→Z':' ↑↓');
+  });
+  if(btn){
+    btn.classList.add('active');
+    btn.textContent = labels[col] + ' ' + dirArrow;
+  }
+  renderStocks();
+}
+
 function renderStocks(){
   const area=document.getElementById('stocks-area');
-  if(!S.stocks.length){area.innerHTML='<div class="empty"><div class="ei">📋</div><div class="et">Henüz alım kaydı yok.</div></div>';return;}
-  area.innerHTML=S.stocks.map(s=>{
-    const l=s.lots.reduce((a,x)=>a+x.lots,0),avg=l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;
+  const summaryEl=document.getElementById('stocks-summary');
+  if(!S.stocks.length){
+    area.innerHTML='<div class="empty"><div class="ei">📋</div><div class="et">Henüz alım kaydı yok.</div></div>';
+    if(summaryEl){summaryEl.style.display='none';}
+    return;
+  }
+
+  // Her hisse için metrik hesapla
+  const rows = S.stocks.map(s=>{
+    const l=s.lots.reduce((a,x)=>a+x.lots,0);
+    const avg=l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;
+    const cost=avg*l;
     const sd=S.dividends.filter(d=>d.ticker===s.ticker).reduce((a,d)=>a+d.total,0);
     const cp=S.prices[s.ticker]?.price||s.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice;
-    const pl=cp?(cp-avg)*l:null,pp=cp?((cp-avg)/avg*100).toFixed(1):null;
+    const pl=cp?(cp-avg)*l:null;
     const ex=s.lots.map(x=>x.expDiv).filter(Boolean);
-    const yld=ex.length&&avg?((ex.reduce((a,b)=>a+b,0)/ex.length)/avg*100).toFixed(2):null;
+    const yld=ex.length&&avg?(ex.reduce((a,b)=>a+b,0)/ex.length)/avg*100:null;
+    return {s, l, avg, cost, sd, cp, pl, yld, ticker:s.ticker, name:s.name, sector:s.sector||''};
+  });
+
+  // Sırala
+  const {col,dir} = _stocksSort;
+  rows.sort((a,b)=>{
+    let va, vb;
+    if(col==='ticker'){return dir==='asc'?a.ticker.localeCompare(b.ticker):b.ticker.localeCompare(a.ticker);}
+    if(col==='name') {return dir==='asc'?a.name.localeCompare(b.name,'tr'):b.name.localeCompare(a.name,'tr');}
+    if(col==='sector'){return dir==='asc'?a.sector.localeCompare(b.sector,'tr'):b.sector.localeCompare(a.sector,'tr');}
+    if(col==='cost') {va=a.cost;vb=b.cost;}
+    else if(col==='lots'){va=a.l;vb=b.l;}
+    else if(col==='avg') {va=a.avg;vb=b.avg;}
+    else if(col==='pl')  {va=a.pl??-Infinity;vb=b.pl??-Infinity;}
+    else if(col==='div') {va=a.sd;vb=b.sd;}
+    else if(col==='yld') {va=a.yld??-Infinity;vb=b.yld??-Infinity;}
+    else {va=0;vb=0;}
+    return dir==='asc'?va-vb:vb-va;
+  });
+
+  // ÖZET BANDI
+  const totalLots  = rows.reduce((a,r)=>a+r.l,0);
+  const totalCost  = rows.reduce((a,r)=>a+r.cost,0);
+  const totalDiv   = rows.reduce((a,r)=>a+r.sd,0);
+  const totalPL    = rows.filter(r=>r.pl!==null).reduce((a,r)=>a+r.pl,0);
+  const hasPL      = rows.some(r=>r.pl!==null);
+  if(summaryEl){
+    summaryEl.style.display='block';
+    summaryEl.innerHTML=`<div class="stat-row">
+      <div class="stat-chip"><div class="stat-chip-lbl">Toplam Hisse Sayısı</div><div class="stat-chip-val mo">${rows.length} hisse</div></div>
+      <div class="stat-chip"><div class="stat-chip-lbl">Toplam Adet</div><div class="stat-chip-val mo">${totalLots.toLocaleString('tr-TR')} adet</div></div>
+      <div class="stat-chip"><div class="stat-chip-lbl">Toplam Yatırım</div><div class="stat-chip-val mo">${fmt(totalCost)}</div></div>
+      <div class="stat-chip"><div class="stat-chip-lbl">Toplam Temettü</div><div class="stat-chip-val mo pos">${fmt(totalDiv)}</div></div>
+      ${hasPL?`<div class="stat-chip"><div class="stat-chip-lbl">Toplam K/Z (Fiyat)</div><div class="stat-chip-val mo ${totalPL>=0?'pos':'neg'}">${totalPL>=0?'+':''}${fmt(totalPL)}</div></div>`:''}
+    </div>`;
+  }
+
+  // KARTLAR
+  area.innerHTML=rows.map(({s,l,avg,cost,sd,cp,pl,yld})=>{
+    const pp=cp?((cp-avg)/avg*100).toFixed(1):null;
     return `<div class="stock-card">
       <div class="stock-header">
         <div>
@@ -1538,13 +1688,29 @@ function renderStocks(){
           </div>`:''}
         </div>
         <div class="stock-metrics">
-          <div class="metric"><div class="metric-lbl">Ort. Maliyet</div><div class="metric-val mo">${fmtN(avg)}</div></div>
-          <div class="metric"><div class="metric-lbl">Toplam Maliyet</div><div class="metric-val mo">${fmt(avg*l)}</div></div>
-          <div class="metric"><div class="metric-lbl">Toplam Temettü</div><div class="metric-val mo pos">${fmt(sd)}</div></div>
-          ${yld?`<div class="metric"><div class="metric-lbl">Temettü Verimi</div><div class="metric-val"><span class="badge bo">%${yld}</span></div></div>`:''}
-          <button class="btn bg2 sm" onclick="openAddModal('${s.ticker}')" style="white-space:nowrap">+ Alım Ekle</button>
-          <button class="btn bg2 sm" onclick="openEditStockModal('${s.ticker}')" style="white-space:nowrap">✏️ Düzenle</button>
-          <button class="btn bd sm" onclick="delStock('${s.ticker}')">🗑 Sil</button>
+          <div class="metric">
+            <div class="metric-lbl">Toplam Adet</div>
+            <div class="metric-val mo">${l.toLocaleString('tr-TR')} <span style="font-size:.68rem;color:var(--muted2)">adet</span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">Ort. Maliyet</div>
+            <div class="metric-val mo">${fmtN(avg)}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">Toplam Maliyet</div>
+            <div class="metric-val mo">${fmt(cost)}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">Toplam Temettü</div>
+            <div class="metric-val mo pos">${fmt(sd)}</div>
+          </div>
+          ${yld?`<div class="metric"><div class="metric-lbl">Temettü Verimi</div><div class="metric-val"><span class="badge bo">%${yld.toFixed(2)}</span></div></div>`:''}
+          ${s.divMonths?.length?`<div class="metric"><div class="metric-lbl">Temettü Ayı</div><div class="metric-val" style="font-size:.76rem">${divMonthBadges(s.divMonths)}</div></div>`:''}
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <button class="btn bg2 sm" onclick="openAddModal('${s.ticker}')" style="white-space:nowrap">+ Alım</button>
+            <button class="btn bg2 sm" onclick="openEditStockModal('${s.ticker}')" style="white-space:nowrap">✏️</button>
+            <button class="btn bd sm" onclick="delStock('${s.ticker}')">🗑</button>
+          </div>
         </div>
       </div>
       <table>
@@ -2050,45 +2216,102 @@ function dl(n,c,t){const a=document.createElement('a');a.href=URL.createObjectUR
 let _rates = {usd:null, eur:null, ts:0};
 
 async function fetchRates(){
-  try{
-    const url = 'https://uzmanpara.milliyet.com.tr/doviz-kurlari/';
-    const proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
-    const r = await fetch(proxy,{signal:AbortSignal.timeout(12000)});
-    if(!r.ok) throw new Error();
-    const html = (await r.json()).contents||'';
-    // Format: DOLAR 44,1122 veya USD ... 44,1122
-    const usdM = html.match(/DOLAR[\s\S]{0,200}?([\d]{2,3}[,.][\d]{2,4})/);
-    const eurM = html.match(/EURO[\s\S]{0,200}?([\d]{2,3}[,.][\d]{2,4})/);
-    if(usdM) _rates.usd = parseFloat(usdM[1].replace(',','.'));
-    if(eurM) _rates.eur = parseFloat(eurM[1].replace(',','.'));
-    _rates.ts = Date.now();
-    updateCurrencyUI();
-  }catch(e){
-    // Fallback: milliyet ana sayfadan çek
-    try{
-      const r2 = await fetch('https://api.allorigins.win/get?url='+encodeURIComponent('https://uzmanpara.milliyet.com.tr/'),{signal:AbortSignal.timeout(12000)});
-      const html2 = (await r2.json()).contents||'';
-      const nums = [...html2.matchAll(/44[,.][\d]{2,4}/g)];
-      if(nums[0]) _rates.usd = parseFloat(nums[0][0].replace(',','.'));
-      const enums = [...html2.matchAll(/5[0-9][,.][\d]{2,4}/g)];
-      if(enums[0]) _rates.eur = parseFloat(enums[0][0].replace(',','.'));
-      _rates.ts = Date.now();
-      updateCurrencyUI();
-    }catch(e2){}
+  // Zaten 5 dk içinde çekilmişse güncelleme
+  if(_rates.usd && _rates.eur && Date.now()-_rates.ts < 5*60*1000) {
+    updateCurrencyUI(); return;
   }
+
+  const TARGET = 'https://uzmanpara.milliyet.com.tr/canli-borsa/bist-TUM-hisseleri/';
+  const enc = encodeURIComponent(TARGET);
+
+  // Milliyet sayfasından çek — hisse sayfasında da döviz verisi var
+  // Gerçek format (bizzat doğrulandı): "DOLAR  \n  44,1122\n  0,11%"
+  // veya markdown: "DOLAR \n44,1122\n0,11%"
+  const proxyList = [
+    ()=>fetch(`https://api.allorigins.win/get?url=${enc}`,{signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.json().then(j=>j.contents||null):null).catch(()=>null),
+    ()=>fetch(`https://api.allorigins.win/raw?url=${enc}`,{signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.text():null).catch(()=>null),
+    ()=>fetch(`https://corsproxy.io/?${enc}`,{signal:AbortSignal.timeout(15000)}).then(r=>r.ok?r.text():null).catch(()=>null),
+  ];
+
+  let html = null;
+  for(const fn of proxyList){
+    html = await fn();
+    if(html && html.length > 500) break;
+    html = null;
+  }
+
+  if(html){
+    // Milliyet sayfasında döviz kısımları şu formatlarda geliyor:
+    // * [DOLAR  \n  44,1122\n  0,11%]
+    // veya: DOLAR  44,1122
+    // veya: \* DOLAR 44,1122
+    const parseRate = (label) => {
+      // Çeşitli patternler dene
+      const patterns = [
+        new RegExp(label + '[\\s\\n\\r*]+([\\d]{2,3}[,.]\\d{2,4})','i'),
+        new RegExp(label + '[^\\d]{0,30}([\\d]{2,3}[,.]\\d{4})','i'),
+        new RegExp(label + '[\\s\\S]{0,50}?([\\d]{2,3},[\\d]{4})','i'),
+      ];
+      for(const p of patterns){
+        const m = html.match(p);
+        if(m) return parseFloat(m[1].replace(',','.'));
+      }
+      return null;
+    };
+
+    const usd = parseRate('DOLAR');
+    const eur = parseRate('EURO');
+
+    if(usd && usd > 1 && usd < 1000) _rates.usd = usd;
+    if(eur && eur > 1 && eur < 1000) _rates.eur = eur;
+  }
+
+  // Fallback: ücretsiz döviz API (CORS'suz, açık)
+  if(!_rates.usd || !_rates.eur){
+    try{
+      // exchangerate-api.com — ücretsiz, CORS açık
+      const r = await fetch('https://open.er-api.com/v6/latest/USD',{signal:AbortSignal.timeout(8000)});
+      if(r.ok){
+        const d = await r.json();
+        if(d.rates?.TRY){
+          _rates.usd = d.rates.TRY;
+          // EUR/TRY = USD/TRY ÷ EUR/USD
+          if(d.rates?.EUR) _rates.eur = d.rates.TRY / d.rates.EUR;
+        }
+      }
+    }catch(e){}
+  }
+
+  // Fallback 2: frankfurter.app — tamamen ücretsiz, CORS açık
+  if(!_rates.usd || !_rates.eur){
+    try{
+      const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=TRY,EUR',{signal:AbortSignal.timeout(8000)});
+      if(r.ok){
+        const d = await r.json();
+        if(d.rates?.TRY) _rates.usd = d.rates.TRY;
+        if(d.rates?.TRY && d.rates?.EUR) _rates.eur = d.rates.TRY / d.rates.EUR;
+      }
+    }catch(e){}
+  }
+
+  if(_rates.usd || _rates.eur) _rates.ts = Date.now();
+  updateCurrencyUI();
 }
 
 function updateCurrencyUI(){
   const totVal = calcTotalCurrentValue();
   const usd = _rates.usd, eur = _rates.eur;
-  const usdEl=document.getElementById('k-usd'), eurEl=document.getElementById('k-eur');
-  const usdREl=document.getElementById('k-usdrate'), eurREl=document.getElementById('k-eurrate');
+  const usdEl=document.getElementById('k-usd');
+  const eurEl=document.getElementById('k-eur');
+  const usdREl=document.getElementById('k-usdrate');
+  const eurREl=document.getElementById('k-eurrate');
   const timeEl=document.getElementById('k-ratetime');
-  if(usdEl && usd) usdEl.textContent = '$'+( totVal/usd ).toLocaleString('tr-TR',{maximumFractionDigits:0});
-  if(eurEl && eur) eurEl.textContent = '€'+( totVal/eur ).toLocaleString('tr-TR',{maximumFractionDigits:0});
-  if(usdREl && usd) usdREl.textContent = '₺'+usd.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:4});
-  if(eurREl && eur) eurREl.textContent = '₺'+eur.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:4});
-  if(timeEl && _rates.ts) timeEl.textContent = new Date(_rates.ts).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+
+  if(usdEl) usdEl.textContent = usd && totVal ? '$'+Math.round(totVal/usd).toLocaleString('tr-TR') : '$—';
+  if(eurEl) eurEl.textContent = eur && totVal ? '€'+Math.round(totVal/eur).toLocaleString('tr-TR') : '€—';
+  if(usdREl) usdREl.textContent = usd ? '₺'+usd.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:4}) : '₺—';
+  if(eurREl) eurREl.textContent = eur ? '₺'+eur.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:4}) : '₺—';
+  if(timeEl) timeEl.textContent = _rates.ts ? new Date(_rates.ts).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
 }
 
 function calcTotalCurrentValue(){
@@ -2353,6 +2576,265 @@ function renderRiskAnalysis(){
         </div>
       </div>
     </div>`;
+}
+
+// ══════════════════════════════════════════════
+// ALIM PLANLAYICISI
+// ══════════════════════════════════════════════
+let _plannerRows = []; // [{ticker, pct, manualPrice}]
+let _plannerIdCounter = 1;
+
+function addPlannerRow(ticker='', pct='', price=''){
+  const id = _plannerIdCounter++;
+  _plannerRows.push({id, ticker, pct, manualPrice: price});
+  renderPlannerRows();
+  calcPlanner();
+}
+
+function addAllPortfolioToPlan(){
+  if(!S.stocks.length){alert('Portföyde hisse yok.');return;}
+  // Döngü öncesinde mevcut ticker'ları al — döngü içinde _plannerRows değişiyor
+  const existingTickers = new Set(_plannerRows.map(r=>r.ticker));
+  let added = 0;
+  S.stocks.forEach(s=>{
+    if(!existingTickers.has(s.ticker)){
+      const cp = S.prices[s.ticker]?.price
+        || s.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice
+        || 0;
+      _plannerRows.push({
+        id: _plannerIdCounter++,
+        ticker: s.ticker,
+        pct: 0,
+        manualPrice: cp||''
+      });
+      added++;
+    }
+  });
+  if(added===0) alert('Tüm portföy hisseleri zaten eklenmiş.');
+  renderPlannerRows();
+  calcPlanner();
+}
+
+function removePlannerRow(id){
+  _plannerRows = _plannerRows.filter(r=>r.id!==id);
+  renderPlannerRows();
+  calcPlanner();
+}
+
+function clearPlanner(){
+  _plannerRows=[];
+  _plannerIdCounter=1;
+  renderPlannerRows();
+  document.getElementById('planner-result').style.display='none';
+  document.getElementById('planner-pct-bar').style.display='none';
+}
+
+function renderPlannerRows(){
+  const cont = document.getElementById('planner-rows');
+  if(!_plannerRows.length){
+    cont.innerHTML='<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:16px 0">"+ Hisse Ekle" veya "Portföyden Ekle" ile başlayın</div>';
+    return;
+  }
+  cont.innerHTML = _plannerRows.map(row=>{
+    // Portföydeki hisseyi bul, güncel fiyatı al
+    const stock = S.stocks.find(s=>s.ticker===row.ticker);
+    const cp = S.prices[row.ticker]?.price
+      || stock?.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice
+      || '';
+    const displayPrice = row.manualPrice||cp||'';
+
+    return `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;
+      background:var(--sf2);border:1px solid var(--br);border-radius:12px;flex-wrap:wrap"
+      data-row-id="${row.id}">
+
+      <!-- Hisse kodu -->
+      <div style="flex:0 0 120px">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:4px">Hisse Kodu</div>
+        <input type="text" value="${row.ticker}"
+          placeholder="GARAN"
+          style="text-transform:uppercase;font-family:var(--fm);font-weight:700;color:var(--ac);font-size:.9rem"
+          oninput="updatePlannerRow(${row.id},'ticker',this.value.toUpperCase());this.value=this.value.toUpperCase()">
+      </div>
+
+      <!-- Yüzde -->
+      <div style="flex:0 0 100px">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:4px">Oran (%)</div>
+        <div style="position:relative">
+          <input type="number" value="${row.pct}" placeholder="70" min="0" max="100" step="1"
+            style="padding-right:24px"
+            oninput="updatePlannerRow(${row.id},'pct',this.value)">
+          <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted);pointer-events:none">%</span>
+        </div>
+      </div>
+
+      <!-- Güncel/Manuel Fiyat -->
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:4px">
+          Güncel Fiyat (₺) ${displayPrice&&!row.manualPrice?'<span style="color:var(--green);font-size:.58rem">● otomatik</span>':'<span style="color:var(--muted);font-size:.58rem">manuel gir</span>'}
+        </div>
+        <input type="number" value="${displayPrice}" placeholder="Fiyat gir" step="0.01"
+          oninput="updatePlannerRow(${row.id},'manualPrice',this.value)">
+      </div>
+
+      <!-- Kaldır -->
+      <button class="btn bd sm" style="flex-shrink:0;align-self:flex-end;margin-bottom:2px"
+        onclick="removePlannerRow(${row.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function updatePlannerRow(id, field, value){
+  const row = _plannerRows.find(r=>r.id===id);
+  if(row){
+    if(field==='pct') row.pct = parseFloat(value)||0;
+    else if(field==='manualPrice') row.manualPrice = parseFloat(value)||'';
+    else row[field] = value;
+  }
+  calcPlanner();
+}
+
+function calcPlanner(){
+  const budget = parseFloat(document.getElementById('planner-budget')?.value)||0;
+  const lotUnit = 1;
+  const pctBar = document.getElementById('planner-pct-bar');
+  const resultEl = document.getElementById('planner-result');
+
+  if(!_plannerRows.length){
+    if(pctBar) pctBar.style.display='none';
+    if(resultEl) resultEl.style.display='none';
+    return;
+  }
+
+  // Toplam yüzde
+  const totalPct = _plannerRows.reduce((a,r)=>a+(parseFloat(r.pct)||0),0);
+
+  // Yüzde göstergesi
+  if(pctBar){
+    pctBar.style.display='block';
+    const fillEl = document.getElementById('planner-pct-fill');
+    const totEl = document.getElementById('planner-pct-total');
+    const pct = Math.min(totalPct,100);
+    const overLimit = totalPct>100;
+    if(fillEl) fillEl.style.cssText = `height:100%;border-radius:99px;transition:width .3s,background .3s;
+      width:${pct}%;background:${overLimit?'var(--red)':totalPct===100?'var(--green)':'var(--ac)'}`;
+    if(totEl){
+      totEl.textContent = `Toplam: %${totalPct.toFixed(0)}`;
+      totEl.style.color = overLimit?'var(--red)':totalPct===100?'var(--green)':'var(--muted)';
+    }
+  }
+
+  if(!budget || budget<=0){
+    if(resultEl) resultEl.style.display='none';
+    return;
+  }
+
+  // Her hisse için hesapla
+  const results = _plannerRows.map(row=>{
+    const ticker = row.ticker.trim().toUpperCase();
+    const pct = parseFloat(row.pct)||0;
+    const stock = S.stocks.find(s=>s.ticker===ticker);
+
+    // Fiyat: manualPrice > güncel fiyat > ortalama maliyet
+    let price = parseFloat(row.manualPrice)||0;
+    if(!price) price = S.prices[ticker]?.price || stock?.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice || 0;
+    if(!price && stock){
+      const l=stock.lots.reduce((a,x)=>a+x.lots,0);
+      price = l?stock.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;
+    }
+
+    const allocated = budget * (pct/100);   // Bu hisseye düşen bütçe
+    const rawLots = price>0 ? allocated/price : 0;  // Ham adet sayısı
+    const lots = Math.floor(rawLots);        // Tam lot (aşağı yuvarla)
+    const spend = lots * price;  // Gerçek harcama
+    const remainder = allocated - spend;     // Kalan para
+
+    return {ticker, pct, price, allocated, lots, spend, remainder,
+      hasPrice:price>0, name: stock?.name||ticker};
+  });
+
+  const totalSpend = results.reduce((a,r)=>a+r.spend,0);
+  const totalRemainder = budget - totalSpend;
+
+  // Sonuç tablosu
+  if(resultEl){
+    resultEl.style.display='block';
+    const body = document.getElementById('planner-result-body');
+    body.innerHTML = `
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+          <thead>
+            <tr style="background:var(--sf2)">
+              <th style="padding:10px 14px;text-align:left;font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--br)">Hisse</th>
+              <th style="padding:10px 14px;text-align:right;font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--br)">Oran</th>
+              <th style="padding:10px 14px;text-align:right;font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--br)">Güncel Fiyat</th>
+              <th style="padding:10px 14px;text-align:right;font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--br)">Ayrılan Bütçe</th>
+              <th style="padding:10px 14px;text-align:center;font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--br)">Alınacak Adet</th>
+              <th style="padding:10px 14px;text-align:right;font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--br)">Toplam Harcama</th>
+              <th style="padding:10px 14px;text-align:right;font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--br)">Kalan</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${results.map(r=>`
+              <tr style="border-bottom:1px solid var(--br);${!r.hasPrice?'opacity:.6':''}">
+                <td style="padding:12px 14px">
+                  <div class="tk" style="font-size:.86rem">${r.ticker}</div>
+                  <div style="font-size:.7rem;color:var(--muted)">${r.name}</div>
+                </td>
+                <td style="padding:12px 14px;text-align:right;font-family:var(--fm);font-weight:700">%${r.pct}</td>
+                <td style="padding:12px 14px;text-align:right;font-family:var(--fm)">
+                  ${r.hasPrice ? fmtN(r.price) : '<span style="color:var(--red);font-size:.75rem">Fiyat girilmedi</span>'}
+                </td>
+                <td style="padding:12px 14px;text-align:right;font-family:var(--fm)">${fmt(r.allocated)}</td>
+                <td style="padding:12px 14px;text-align:center">
+                  ${r.hasPrice && r.lots>0
+                    ? `<div style="display:inline-flex;flex-direction:column;align-items:center;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.25);border-radius:10px;padding:6px 16px">
+                        <span style="font-family:var(--fm);font-weight:800;font-size:1.2rem;color:var(--ac)">${r.lots.toLocaleString('tr-TR')}</span><span style="font-size:.62rem;color:var(--muted)">adet</span>
+                        
+                       </div>`
+                    : r.hasPrice
+                      ? `<span style="color:var(--red);font-size:.76rem">Bütçe yetersiz</span>`
+                      : `<span style="color:var(--muted);font-size:.76rem">—</span>`
+                  }
+                </td>
+                <td style="padding:12px 14px;text-align:right;font-family:var(--fm);color:var(--green)">${r.lots>0?fmt(r.spend):'—'}</td>
+                <td style="padding:12px 14px;text-align:right;font-family:var(--fm);color:var(--muted2)">${r.lots>0?fmt(r.remainder):'—'}</td>
+              </tr>`).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--sf2);border-top:2px solid var(--br)">
+              <td colspan="3" style="padding:12px 14px;font-weight:700;font-size:.82rem">TOPLAM</td>
+              <td style="padding:12px 14px;text-align:right;font-family:var(--fm);font-weight:700">${fmt(budget)}</td>
+              <td></td>
+              <td style="padding:12px 14px;text-align:right;font-family:var(--fm);font-weight:700;color:var(--green)">${fmt(totalSpend)}</td>
+              <td style="padding:12px 14px;text-align:right;font-family:var(--fm);font-weight:700;color:${totalRemainder<0?'var(--red)':'var(--gold)'}">${fmt(totalRemainder)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      ${totalPct!==100?`<div style="margin-top:12px;padding:10px 14px;background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.2);border-radius:10px;font-size:.78rem;color:var(--gold)">
+        ⚠️ Yüzdeler toplamı %${totalPct.toFixed(0)} — %100 yapmanız önerilir. Kalan %${(100-totalPct).toFixed(0)} dağıtılmadı.
+      </div>`:''}
+      <div style="margin-top:10px;padding:10px 14px;background:var(--sf2);border-radius:10px;font-size:.76rem;color:var(--muted2);display:flex;align-items:center;gap:8px">
+        💡 Fiyatlar aşağı yuvarlama ile hesaplanır (tam lot). Kalan tutar bütçenizde kalır.
+        ${!results.every(r=>r.hasPrice)?'<span style="color:var(--red)">Bazı hisselerin fiyatı eksik — fiyat güncelleyerek tekrar deneyin.</span>':''}
+      </div>`;
+  }
+}
+
+function exportPlannerCSV(){
+  const budget = parseFloat(document.getElementById('planner-budget')?.value)||0;
+  let csv = '\uFEFF"Hisse Kodu","Oran (%)","Fiyat (₺)","Ayrılan Bütçe (₺)","Alınacak Lot","Harcama (₺)","Kalan (₺)"\r\n';
+  _plannerRows.forEach(row=>{
+    const t=row.ticker.trim().toUpperCase();
+    const pct=parseFloat(row.pct)||0;
+    let price=parseFloat(row.manualPrice)||0;
+    if(!price){const s=S.stocks.find(x=>x.ticker===t);price=S.prices[t]?.price||s?.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice||0;}
+    const alloc=budget*(pct/100);
+    const lots=price>0?Math.floor(alloc/price):0;
+    const spend=lots*price;
+    csv+=`"${t}","${pct}","${price.toFixed(2)}","${alloc.toFixed(2)}","${lots}","${spend.toFixed(2)}","${(alloc-spend).toFixed(2)}"\r\n`;
+  });
+  dl('alim-plani.csv',csv,'text/csv;charset=utf-8');
 }
 
 // ══════════════════════════════════════════════
