@@ -653,7 +653,7 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
       <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:20px;flex-wrap:wrap">
         <div class="fi" style="flex:1;min-width:200px">
           <label>Toplam Bütçe (₺)</label>
-          <input type="number" id="planner-budget" placeholder="10.000" step="100" oninput="calcPlanner()">
+          <input type="number" id="planner-budget" placeholder="10.000" step="100" oninput="savePlanner();calcPlanner()">
         </div>
         <div style="display:flex;gap:8px;align-items:center;padding-bottom:2px">
           <button class="btn bg2 sm" onclick="addPlannerRow()">+ Hisse Ekle</button>
@@ -2584,9 +2584,30 @@ function renderRiskAnalysis(){
 let _plannerRows = []; // [{ticker, pct, manualPrice}]
 let _plannerIdCounter = 1;
 
+// Planlayıcı verilerini localStorage'a kaydet/yükle
+function savePlanner(){
+  const budget = document.getElementById('planner-budget')?.value||'';
+  localStorage.setItem('tmtt_planner', JSON.stringify({rows:_plannerRows, counter:_plannerIdCounter, budget}));
+}
+function loadPlanner(){
+  try{
+    const d = localStorage.getItem('tmtt_planner');
+    if(d){
+      const p = JSON.parse(d);
+      _plannerRows = p.rows||[];
+      _plannerIdCounter = p.counter||(_plannerRows.length+1);
+      if(p.budget){
+        const el = document.getElementById('planner-budget');
+        if(el) el.value = p.budget;
+      }
+    }
+  }catch(e){}
+}
+
 function addPlannerRow(ticker='', pct='', price=''){
   const id = _plannerIdCounter++;
   _plannerRows.push({id, ticker, pct, manualPrice: price});
+  savePlanner();
   renderPlannerRows();
   calcPlanner();
 }
@@ -2611,12 +2632,14 @@ function addAllPortfolioToPlan(){
     }
   });
   if(added===0) alert('Tüm portföy hisseleri zaten eklenmiş.');
+  savePlanner();
   renderPlannerRows();
   calcPlanner();
 }
 
 function removePlannerRow(id){
   _plannerRows = _plannerRows.filter(r=>r.id!==id);
+  savePlanner();
   renderPlannerRows();
   calcPlanner();
 }
@@ -2624,6 +2647,7 @@ function removePlannerRow(id){
 function clearPlanner(){
   _plannerRows=[];
   _plannerIdCounter=1;
+  savePlanner();
   renderPlannerRows();
   document.getElementById('planner-result').style.display='none';
   document.getElementById('planner-pct-bar').style.display='none';
@@ -2854,6 +2878,9 @@ if(S.stocks.length){
   document.getElementById('last-upd').textContent='Yüklendi · '+new Date().toLocaleString('tr-TR');
   if(S.settings?.['auto-price']==='true'||S.settings?.['auto-price']===true)setTimeout(fetchAllPrices,1200);
 }
+// Planlayıcıyı yükle
+loadPlanner();
+if(_plannerRows.length){ renderPlannerRows(); calcPlanner(); }
 // Döviz kurlarını başlangıçta çek
 setTimeout(fetchRates, 800);
 </script>
